@@ -1,0 +1,29 @@
+[project]
+name = "crestflow-treasury"
+version = "0.1.0"
+description = "Crestflow Treasury — Non-Custodial T-Bill Yield Engine on Algorand"
+requires-python = ">=3.12"
+dependencies = [
+    "algosdk>=3.0.0",
+    "algokit-utils>=3.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

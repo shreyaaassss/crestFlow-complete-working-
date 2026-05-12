@@ -1,0 +1,9 @@
+{
+    "pythonVersion": "3.12",
+    "pythonPlatform": "Windows",
+    "extraPaths": [
+        "C:\\Users\\omen\\AppData\\Roaming\\Python\\Python312\\site-packages"
+    ],
+    "reportMissingImports": "warning",
+    "reportDeprecated": false
+}
