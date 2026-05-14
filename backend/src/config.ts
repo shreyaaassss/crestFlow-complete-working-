@@ -19,13 +19,28 @@ export const JWT_SECRET      = opt("JWT_SECRET", "cadencia-dev-secret-change-in-
 export const JWT_EXPIRY_SEC  = 86400; // 24h
 export const NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 min
 
+// Network Config
+export const NETWORK    = opt("NETWORK", "testnet").toLowerCase();
+export const IS_MAINNET = NETWORK === "mainnet";
+
+const DEFAULT_ALGOD_SERVER = IS_MAINNET 
+  ? "https://mainnet-api.algonode.cloud" 
+  : "https://testnet-api.algonode.cloud";
+
+const DEFAULT_EXPLORER = IS_MAINNET
+  ? "https://explorer.perawallet.app"
+  : "https://testnet.explorer.perawallet.app";
+
+export const EXPLORER_BASE = opt("EXPLORER_BASE", DEFAULT_EXPLORER);
+
+
 export const ESCROW_APP_ID   = parseInt(req("ESCROW_APP_ID"));
 export const TBILL_APP_ID    = parseInt(req("TBILL_APP_ID"));
 export const PLATFORM_WALLET = req("PLATFORM_WALLET_ADDRESS");
 
 export const algodClient = new algosdk.Algodv2(
   opt("ALGOD_TOKEN", ""),
-  opt("ALGOD_SERVER", "https://testnet-api.algonode.cloud"),
+  opt("ALGOD_SERVER", DEFAULT_ALGOD_SERVER),
   opt("ALGOD_PORT",   "443")
 );
 

@@ -15,16 +15,36 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] || fallback;
 }
 
+// Network Config
+export const NETWORK    = optionalEnv("NETWORK", "testnet").toLowerCase();
+export const IS_MAINNET = NETWORK === "mainnet";
+
+const DEFAULT_ALGOD = IS_MAINNET
+  ? "https://mainnet-api.algonode.cloud"
+  : "https://testnet-api.algonode.cloud";
+
+const DEFAULT_INDEXER = IS_MAINNET
+  ? "https://mainnet-idx.algonode.cloud"
+  : "https://testnet-idx.algonode.cloud";
+
+const DEFAULT_EXPLORER = IS_MAINNET
+  ? "https://explorer.perawallet.app"
+  : "https://testnet.explorer.perawallet.app";
+
+export const EXPLORER_BASE = optionalEnv("EXPLORER_BASE", DEFAULT_EXPLORER);
+export const YIELD_BACKEND = optionalEnv("YIELD_BACKEND", "reserve");
+
+
 // Algorand clients
 export const algodClient = new algosdk.Algodv2(
   optionalEnv("ALGOD_TOKEN", ""),
-  optionalEnv("ALGOD_SERVER", "https://testnet-api.algonode.cloud"),
+  optionalEnv("ALGOD_SERVER", DEFAULT_ALGOD),
   optionalEnv("ALGOD_PORT", "443")
 );
 
 export const indexerClient = new algosdk.Indexer(
   "",
-  optionalEnv("INDEXER_SERVER", "https://testnet-idx.algonode.cloud"),
+  optionalEnv("INDEXER_SERVER", DEFAULT_INDEXER),
   optionalEnv("INDEXER_PORT", "443")
 );
 
