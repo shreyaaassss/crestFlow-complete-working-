@@ -6,6 +6,7 @@ import * as escrow from "../services/escrow";
 import * as tbill from "../services/tbill";
 import * as logger from "../utils/logger";
 import { withRetry } from "../utils/retry";
+import { getYieldBackend } from "../services/yield-backend";
 
 export async function investPendingOrders(): Promise<void> {
   const pendingOrders = await escrow.findOrdersByStatus(OrderStatus.PENDING);
@@ -21,9 +22,16 @@ export async function investPendingOrders(): Promise<void> {
       const tbillType = tbill.selectTBillType(lockDurationRounds);
       await escrow.transferToTreasury(orderId);
       await tbill.invest(orderId, order.amount, tbillType);
+
+      // Yield backend hook — routes to DeFi on mainnet Phase 2, no-op for reserve
+      const yb = getYieldBackend();
+      if (yb.name() !== "on-chain-reserve") {
+        await yb.deposit(orderId, order.amount, tbillType);
+      }
+
       await escrow.markInvested(orderId);
       logger.info(
-        `Invested order ${orderId}: ${order.amount / 1e6} ALGO -> ${tbill.tbillLabel(tbillType)}`
+        `Invested order ${orderId}: ${order.amount / 1e6} ALGO -> ${tbill.tbillLabel(tbillType)} [backend=${yb.name()}]`
       );
     }, `invest(${orderId})`);
   }

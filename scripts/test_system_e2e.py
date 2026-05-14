@@ -72,13 +72,38 @@ def suite_api():
     except Exception as e:
         record(suite, "GET /health", False, str(e)); return
 
-    # Platform
-    for ep in ["/platform/stats", "/platform/config", "/platform/tiers"]:
+    # Platform — public endpoint
+    try:
+        r = get("/platform/status")
+        record(suite, "GET /platform/status", r.status_code == 200)
+    except Exception as e:
+        record(suite, "GET /platform/status", False, str(e))
+
+    # Platform — admin-only endpoints (no key -> 403)
+    for ep in ["/platform/stats", "/platform/config"]:
         try:
             r = get(ep)
-            record(suite, f"GET {ep}", r.status_code == 200)
+            record(suite, f"GET {ep} (no key -> 403)", r.status_code == 403)
         except Exception as e:
-            record(suite, f"GET {ep}", False, str(e))
+            record(suite, f"GET {ep} (no key -> 403)", False, str(e))
+
+    # Platform — admin-only endpoints (with key -> 200)
+    admin_key = os.getenv("ADMIN_API_KEY", "change-me-in-production")
+    for ep in ["/platform/stats", "/platform/config"]:
+        try:
+            r = s.get(f"{BASE_URL}{ep}", headers={"X-Admin-Key": admin_key})
+            record(suite, f"GET {ep} (with key -> 200)", r.status_code == 200)
+        except Exception as e:
+            record(suite, f"GET {ep} (with key -> 200)", False, str(e))
+
+    # Platform tiers — public, no yield data
+    try:
+        r = get("/platform/tiers")
+        d = r.json()
+        has_apy = "apy_pct" in str(d)  # must NOT be present
+        record(suite, "GET /platform/tiers", r.status_code == 200 and not has_apy, "no apy_pct in response")
+    except Exception as e:
+        record(suite, "GET /platform/tiers", False, str(e))
 
     # Estimate
     try:
@@ -490,8 +515,9 @@ def suite_supabase():
         svc.table("platform_snapshots").insert({
             "total_orders": 1, "active_orders": 0, "yield_rate_bps": 500, "demo_mode": True
         }).execute()
+        # anon should be BLOCKED from platform_snapshots (RLS hardened)
         r = anon.table("platform_snapshots").select("yield_rate_bps").order("snapshotted_at", desc=True).limit(1).execute()
-        record(suite, "Platform snapshot insert + read", r.data[0]["yield_rate_bps"] == 500)
+        record(suite, "Platform snapshot: anon blocked (RLS)", len(r.data) == 0)
     except Exception as e:
         record(suite, "Platform snapshot", False, str(e))
 

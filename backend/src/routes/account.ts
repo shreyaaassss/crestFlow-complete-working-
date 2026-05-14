@@ -6,7 +6,7 @@
  */
 import { Router, Request, Response } from "express";
 import algosdk from "algosdk";
-import { algodClient } from "../config";
+import { algodClient, EXPLORER_BASE } from "../config";
 import { fetchAllOrders } from "../services/chain";
 
 export const accountRouter = Router();
@@ -45,7 +45,7 @@ accountRouter.get("/:address", async (req: Request, res: Response) => {
       opted_in_assets:     assets.length,
       assets,
       status:              info.status,
-      explorer: `https://testnet.explorer.perawallet.app/address/${address}`,
+      explorer: `${EXPLORER_BASE}/address/${address}`,
     });
   } catch (err: any) {
     if (err.message?.includes("404") || err.message?.includes("no accounts")) {
@@ -98,22 +98,28 @@ accountRouter.get("/:address/orders", async (req: Request, res: Response) => {
     const totalPaidAlgo = matched
       .filter((o) => o.order.status === "COMPLETED")
       .reduce((s, o) => s + o.order.amount_algo, 0);
-    const totalYieldAlgo = matched
-      .reduce((s, o) => s + o.order.yield_earned_algo, 0);
 
     res.json({
       address,
       role,
       total_orders: matched.length,
       summary: {
-        total_paid_algo:  parseFloat(totalPaidAlgo.toFixed(6)),
-        total_yield_algo: parseFloat(totalYieldAlgo.toFixed(6)),
+        total_transacted_algo: parseFloat(totalPaidAlgo.toFixed(6)),
         by_status: ["PENDING","INVESTED","REDEEMED","COMPLETED","CANCELLED"].reduce(
           (acc, s) => ({ ...acc, [s]: matched.filter((o) => o.order.status === s).length }),
           {} as Record<string, number>
         ),
       },
-      orders: matched.map(({ orderId, order }) => ({ order_id: orderId, ...order })),
+      // Strip all financial/investment fields from the public order list
+      orders: matched.map(({ orderId, order }) => ({
+        order_id:    orderId,
+        status:      order.status,
+        buyer:       order.buyer,
+        seller:      order.seller,
+        amount_algo: order.amount_algo,
+        lock_until:  order.lock_until,
+        created_at:  order.created_at,
+      })),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -21,7 +21,7 @@ import { Router, Request, Response } from "express";
 import algosdk from "algosdk";
 import { requireAuth } from "../middleware/jwt";
 import {
-  algodClient, ESCROW_APP_ID, TBILL_APP_ID, VALID_TIERS, TIER_ROUNDS, PLATFORM_WALLET,
+  algodClient, ESCROW_APP_ID, TBILL_APP_ID, VALID_TIERS, TIER_ROUNDS, PLATFORM_WALLET, EXPLORER_BASE,
 } from "../config";
 import {
   fetchOrder, fetchAllOrders, fetchPosition,
@@ -79,7 +79,15 @@ ordersRouter.get("/", async (req: Request, res: Response) => {
       limit: lim,
       offset: off,
       has_more: off + lim < total,
-      orders: page.map(({ orderId, order }) => ({ order_id: orderId, ...order })),
+      orders: page.map(({ orderId, order }) => ({
+        order_id:    orderId,
+        status:      order.status,
+        buyer:       order.buyer,
+        seller:      order.seller,
+        amount_algo: order.amount_algo,
+        lock_until:  order.lock_until,
+        created_at:  order.created_at,
+      })),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -267,10 +275,10 @@ ordersRouter.post("/submit", requireAuth, async (req: Request, res: Response) =>
     res.json({
       txid:            txId,
       confirmed_round: confirmedRound ? Number(confirmedRound) : null,
-      message:         "Order created. The orchestrator will invest it within the next poll cycle (~30s).",
+      message:         "Order created. Funds are now secured in escrow.",
       next_steps: {
         monitor:  `GET /orders/{order_id} to track status`,
-        explorer: `https://testnet.explorer.perawallet.app/tx/${txId}`,
+        explorer: `${EXPLORER_BASE}/tx/${txId}`,
       },
     });
   } catch (err: any) {
@@ -294,19 +302,23 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
     const now = Math.floor(Date.now() / 1000);
 
     res.json({
-      order_id: orderId,
-      ...order,
-      tbill_position: position,
+      order_id:             orderId,
+      status:               order.status,
+      buyer:                order.buyer,
+      seller:               order.seller,
+      amount_algo:          order.amount_algo,
+      lock_until:           order.lock_until,
+      created_at:           order.created_at,
+      // "maturity" is presented as an operational release date — not a financial instrument
+      estimated_release_ts: position?.maturity_timestamp ?? null,
       lifecycle: {
         is_active:   ["PENDING","INVESTED","REDEEMED"].includes(order.status),
         is_complete: order.status === "COMPLETED" || order.status === "CANCELLED",
-        seconds_until_maturity: position?.seconds_until_maturity ?? null,
-        is_matured:  position?.is_matured ?? null,
       },
       links: {
-        buyer_explorer:  `https://testnet.explorer.perawallet.app/address/${order.buyer}`,
-        seller_explorer: `https://testnet.explorer.perawallet.app/address/${order.seller}`,
-        escrow_explorer: `https://testnet.explorer.perawallet.app/application/${ESCROW_APP_ID}`,
+        buyer_explorer:  `${EXPLORER_BASE}/address/${order.buyer}`,
+        seller_explorer: `${EXPLORER_BASE}/address/${order.seller}`,
+        escrow_explorer: `${EXPLORER_BASE}/application/${ESCROW_APP_ID}`,
       },
     });
   } catch (err: any) {
