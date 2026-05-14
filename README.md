@@ -24,6 +24,7 @@
 11. [Setup & Running](#11-setup--running)
 12. [API Reference](#12-api-reference)
 13. [Testing](#13-testing)
+14. [Admin Access](#14-admin-access)
 
 ---
 
@@ -250,7 +251,16 @@ function selectTier(lockDays: number): { asaId: number; label: string } {
 
 ## 5. Backend API
 
-Express.js REST API on port `3001`. Stateless except for an in-memory nonce store (TTL 5min). All reads are unauthenticated; writes require a JWT Bearer token.
+Express.js REST API on port `3001`. Stateless except for an in-memory nonce store (TTL 5min).
+
+### Authentication Tiers
+
+| Tier | Who | How | Token Lifetime |
+|---|---|---|---|
+| **Buyer/Seller (Web3)** | Any wallet holder | Sign a 32-byte nonce with Pera Wallet → `POST /auth/verify` → JWT | 24 hours |
+| **Admin (Web2)** | Platform operator only | Supabase email+password → Supabase JWT | Configurable |
+
+**Response masking:** Public routes (`GET /orders`, `GET /orders/:id`) return safe fields only — `yield_earned`, `tbill_position`, and internal position data are omitted. An admin JWT on the same endpoints returns the full unmasked payload.
 
 ### Auth Flow (Non-Custodial)
 
@@ -443,8 +453,14 @@ CrestFlow/
 │       ├── types.ts                  # Shared interfaces
 │       ├── services/
 │       │   ├── algorand.ts           # Algod client, payment helpers
-│       │   ├── escrow.ts             # CadenciaEscrow ABI calls
-│       │   └── tbill.ts              # CadenciaTBill ABI calls
+│       │   ├── escrow.ts             # CadenciaEscrow ABI calls + Supabase sync
+│       │   ├── tbill.ts              # CadenciaTBill ABI calls
+│       │   ├── supabase.ts           # Supabase status sync (INVESTED/REDEEMED/COMPLETED)
+│       │   └── yield-backend/
+│       │       ├── interface.ts      # YieldBackend interface
+│       │       ├── reserve.ts        # On-chain reserve (current/testnet)
+│       │       ├── folks-finance.ts  # Folks Finance stub (mainnet Phase 2)
+│       │       └── index.ts          # Backend factory (env-driven)
 │       ├── workers/
 │       │   ├── investor.ts           # PENDING → INVESTED
 │       │   ├── redeemer.ts           # INVESTED → REDEEMED (on maturity)
@@ -461,22 +477,26 @@ CrestFlow/
 │       ├── config.ts                 # Env vars, Algod client, tier config
 │       ├── index.ts                  # Express app + /health + /tx/:txid
 │       ├── middleware/
-│       │   └── jwt.ts                # requireAuth() — Bearer JWT
+│       │   ├── jwt.ts                # requireAuth() — Web3 Bearer JWT
+│       │   └── adminAuth.ts          # requireAdminAuth() — Supabase JWT
 │       ├── routes/
 │       │   ├── auth.ts               # POST /auth/nonce, /auth/verify
-│       │   ├── orders.ts             # CRUD + prepare + submit
-│       │   ├── platform.ts           # Stats, config, tiers
+│       │   ├── orders.ts             # CRUD + prepare + submit (masked/unmasked)
+│       │   ├── platform.ts           # Stats, config, tiers (admin-gated)
 │       │   └── account.ts            # Balance, order history
 │       └── services/
 │           ├── chain.ts              # On-chain reads + Box decoding
-│           └── nonce.ts              # In-memory nonce TTL store
+│           ├── nonce.ts              # In-memory nonce TTL store
+│           └── supabase.ts           # Supabase service-role client
 │
 └── scripts/
-    ├── deploy_escrow_v2.py           # Deploy CadenciaEscrow
-    ├── deploy_tbill_v2.py            # Deploy CadenciaTBill + mint ASAs
-    ├── relink_escrow.py              # Update escrow → tbill link
-    ├── test_api_e2e.py               # Full API lifecycle test (verified ✓)
-    └── test_e2e.py                   # Direct contract lifecycle test
+    ├── ops/                          # Deployment & admin tooling
+    │   ├── deploy_escrow_v2.py       # Deploy CadenciaEscrow contract
+    │   ├── deploy_tbill_v2.py        # Deploy CadenciaTBill + mint 7 ASAs
+    │   └── relink_escrow.py          # Re-link Escrow → TBill after redeploy
+    ├── test_full_flow.py             # ★ Primary E2E test (37 checks, all pass)
+    ├── test_system_e2e.py            # Parallel suite: API + Chain + Supabase
+    └── test_supabase_e2e.py          # Supabase schema, RLS, FK integrity
 ```
 
 ---
@@ -566,9 +586,10 @@ All endpoints served at `http://localhost:3001`. JWT required endpoints need `Au
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/platform/stats` | — | Live on-chain aggregate stats |
-| GET | `/platform/config` | — | Contract IDs, ASA IDs, network |
-| GET | `/platform/tiers` | — | All 7 tiers with APY and demo maturity |
+| GET | `/platform/stats` | Admin JWT | Live on-chain aggregate stats |
+| GET | `/platform/config` | Admin JWT | Contract IDs, ASA IDs, network |
+| GET | `/platform/tiers` | Admin JWT | All 7 tiers with APY and demo maturity |
+| GET | `/platform/history` | Admin JWT | Historical platform snapshots |
 
 ### Account
 
@@ -622,38 +643,94 @@ Response includes `order_id`, `unsigned_txns: [base64, base64]`, and `signing_in
 
 ## 13. Testing
 
-### Full API E2E Test
+Three test scripts cover different layers. Requires backend + orchestrator running on testnet.
 
-Runs the complete lifecycle (PENDING → INVESTED → REDEEMED → COMPLETED) against live testnet. Requires both orchestrator and backend to be running.
+### Test Suite Overview
 
-```bash
-# 1-day tier (~3 min total, 10 ALGO)
-python scripts/test_api_e2e.py --tier 1 --amount 10
+| Script | What it covers | Checks | When to run |
+|---|---|---|---|
+| `test_full_flow.py` | Full lifecycle E2E: Auth → Prepare → Sign → Submit → Invest → Redeem → Complete → Supabase sync | **37** | Before every deploy |
+| `test_system_e2e.py` | API endpoints + Algorand chain + Supabase DB (parallel) | **63** | CI/CD baseline |
+| `test_supabase_e2e.py` | All 8 tables, RLS policies, FK integrity, views | **50+** | After schema migrations |
 
-# 7-day tier (~10 min total)
-python scripts/test_api_e2e.py --tier 7 --amount 20
-```
+### Primary E2E Test — `test_full_flow.py`
 
-**Verified test output (1D tier, demo mode):**
-```
-Step 1  Health Check      ✓  Round 63306284 — API live
-Step 2  Platform Info     ✓  5% APY, 7 tiers, demo mode ON
-Step 3  Yield Estimate    ✓  10 ALGO @ 1D = 0.00137 ALGO
-Step 4  Balances          ✓  Buyer 95.7 ALGO
-Step 5  Non-Custodial Auth✓  Nonce → Ed25519 → JWT (24h)
-Step 6  Prepare Order     ✓  Order 589631, unsigned grouped txns
-Step 7  Sign + Submit     ✓  txid confirmed on-chain
-Step 8  Lifecycle Monitor ✓  PENDING(0s)→INVESTED(51s)→REDEEMED(175s)→COMPLETED(197s)
-Step 9  Final Verify      ✓  30 ALGO released, 0.026 ALGO yield accumulated
-══════════════════════════════════════════════════
-  ✓  ALL STEPS PASSED — Full lifecycle verified!
-══════════════════════════════════════════════════
-```
-
-### Direct Contract Test
+Runs the complete lifecycle against live testnet in ~5 minutes.
 
 ```bash
-python scripts/test_e2e.py --tier 1 --amount 10
+# 1-day tier (fastest — ~5 min total)
+python scripts/test_full_flow.py --tier 1 --amount 10
+
+# With admin unmasking test (requires Supabase admin password)
+python scripts/test_full_flow.py --tier 1 --amount 10 --admin-password <password>
+```
+
+**Latest verified output:**
+```
+  STEP 1: Backend health check         [PASS] GET /health → 200
+  STEP 2: Buyer auth — nonce → JWT     [PASS] POST /auth/verify → JWT (223 chars)
+  STEP 3: Yield estimate               [PASS] Est. yield: 0.00137 ALGO  |  APY: 5%
+  STEP 4: Prepare unsigned txns        [PASS] 2 unsigned txns returned
+  STEP 5: Sign & submit                [PASS] txid confirmed on-chain
+  STEP 6: Public masked view           [PASS] No yield_earned / tbill_position exposed
+  STEP 7: Wait for INVESTED            [PASS] Order reached INVESTED
+  STEP 8: Wait for COMPLETED           [PASS] Order reached COMPLETED
+  STEP 9: On-chain balance change      [PASS] Seller received ~10 ALGO
+  STEP 10: Admin unmasked endpoint     [PASS] Full data visible with admin JWT
+  STEP 11: Public mask after complete  [PASS] yield_earned still hidden publicly
+  STEP 12: Unauthenticated platform    [PASS] No token → 401  |  Bad token → 401
+
+  ALL 37 CHECKS PASSED ✓
+
+  TxID: G7VHAUXXV24MU2EIKXAW2YMSWCSFPOWPHYNC6YZHLHGKOUZG7KDQ
+```
+
+### Parallel System Test — `test_system_e2e.py`
+
+```bash
+python scripts/test_system_e2e.py
+```
+
+Runs 63 checks across three suites in parallel: REST API contract, Algorand chain reads, and Supabase DB writes.
+
+### Supabase Schema Test — `test_supabase_e2e.py`
+
+```bash
+python scripts/test_supabase_e2e.py
+```
+
+Verifies all 8 tables (`orders`, `tbill_positions`, `tx_events`, `wallets`, `nonces`, `platform_snapshots`, `orchestrator_logs`, `notifications`), RLS policies (anon cannot write/read protected tables), FK cascade integrity, and the `order_summary` view.
+
+---
+
+## 14. Admin Access
+
+Admin routes are protected by **Supabase JWT** (email/password auth, separate from the Web3 wallet flow).
+
+### Admin-Only Routes
+
+| Route | Access Level |
+|---|---|
+| `GET /platform/stats` | Admin only |
+| `GET /platform/config` | Admin only |
+| `GET /platform/tiers` | Admin only |
+| `GET /platform/history` | Admin only |
+
+### Admin-Enhanced Routes (public with partial data, full with admin JWT)
+
+| Route | Public | Admin |
+|---|---|---|
+| `GET /orders` | `order_id, status, buyer, seller, amount_algo, lock_until` | + `yield_earned`, `status_code`, `invest_eligible` |
+| `GET /orders/:id` | Above fields + `description`, `lifecycle`, `links` | + `tbill_position`, `yield_earned_algo`, `tbill_explorer` |
+
+### Required Environment Variables
+
+```bash
+ADMIN_EMAIL=your-admin@email.com       # Must match Supabase user
+SUPABASE_JWT_SECRET=your-jwt-secret    # From Supabase → Settings → API
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...          # Service role (backend only)
+SUPABASE_ANON_KEY=...                  # Anon key
 ```
 
 ---
@@ -661,6 +738,8 @@ python scripts/test_e2e.py --tier 1 --amount 10
 ## Mainnet Considerations
 
 See [`docs/MAINNET_STRATEGY.md`](docs/MAINNET_STRATEGY.md) for the full revenue model, yield source options (Folks Finance, institutional T-bill custodians), and deployment roadmap.
+
+The `NETWORK` environment variable (`testnet` | `mainnet`) is the single flip switch. The `YIELD_BACKEND` variable (`reserve` | `folks-finance`) selects the yield source. No code changes required at flip time — only `.env` updates.
 
 ---
 

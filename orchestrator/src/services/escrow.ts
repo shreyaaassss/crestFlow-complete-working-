@@ -9,6 +9,7 @@ import { ESCROW_APP_ID, PLATFORM_WALLET, algodClient } from "../config";
 import { OrderRecord, OrderStatus } from "../types";
 import * as algorand from "./algorand";
 import * as logger from "../utils/logger";
+import { syncOrderStatus } from "./supabase";
 
 const ORDERS_PREFIX = Buffer.from("orders");
 
@@ -56,6 +57,7 @@ export async function markInvested(orderId: number): Promise<void> {
     [orderIdBox(orderId)]
   );
   logger.info(`Escrow: order ${orderId} marked INVESTED`);
+  void syncOrderStatus(orderId, "INVESTED");
 }
 
 export async function markRedeemed(orderId: number, yieldEarned: number): Promise<void> {
@@ -66,6 +68,7 @@ export async function markRedeemed(orderId: number, yieldEarned: number): Promis
     [orderIdBox(orderId)]
   );
   logger.info(`Escrow: order ${orderId} marked REDEEMED (yield: ${yieldEarned / 1e6} ALGO)`);
+  void syncOrderStatus(orderId, "REDEEMED", yieldEarned);
 }
 
 export async function transferToTreasury(orderId: number): Promise<void> {
@@ -102,6 +105,7 @@ export async function completeOrder(orderId: number, sellerAddr: string): Promis
     [sellerAddr, PLATFORM_WALLET]
   );
   logger.info(`Escrow: order ${orderId} COMPLETED — seller paid, yield distributed`);
+  void syncOrderStatus(orderId, "COMPLETED");
 }
 
 export async function getEscrowStats(): Promise<{

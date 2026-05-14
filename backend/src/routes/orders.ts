@@ -295,16 +295,32 @@ ordersRouter.post("/submit", requireAuth, async (req: Request, res: Response) =>
       },
     });
 
-    // Write description to Supabase after responding — fire and forget
-    if (description && order_id) {
+    // Persistent metadata write to Supabase
+    if (order_id) {
       void (async () => {
         try {
+          // Fetch confirmed data from chain to ensure Supabase is accurate
+          const orderData = await fetchOrder(order_id);
+          
           await supabaseService
             .from("orders")
-            .update({ description: description.slice(0, 500) })
-            .eq("order_id", order_id);
+            .upsert({
+              order_id:         order_id,
+              buyer_address:    orderData.buyer,
+              seller_address:   orderData.seller,
+              amount_microalgo: orderData.amount,
+              status:           orderData.status,
+              lock_days:        Math.round((orderData.lock_until - orderData.created_at) / 100), // Approximate if needed or derive from TIERs
+              invest_eligible:  orderData.invest_eligible,
+              created_at_round: orderData.created_at,
+              lock_until_round: orderData.lock_until,
+              create_txid:      txId,
+              confirmed_round:  confirmedRound ? Number(confirmedRound) : null,
+              description:      description ? description.slice(0, 500) : null,
+              last_synced_at:   new Date().toISOString(),
+            }, { onConflict: 'order_id' });
         } catch (e: any) {
-          console.warn("[orders/submit] description write failed:", e?.message);
+          console.warn("[orders/submit] Supabase upsert failed:", e?.message);
         }
       })();
     }
@@ -321,16 +337,20 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
 
   try {
     const admin = isAdminRequest(req);
-    const [order, position] = await Promise.all([
+    const [order, position, dbOrder] = await Promise.all([
       fetchOrder(orderId),
       fetchPosition(orderId),
+      supabaseService.from("orders").select("description").eq("order_id", orderId).maybeSingle(),
     ]);
+
+    const description = dbOrder?.data?.description || null;
 
     if (admin) {
       // Admin: full unmasked response — all fields including tbill position and yield
       res.json({
         order_id:        orderId,
         ...order,
+        description,
         tbill_position:  position ?? null,
         lifecycle: {
           is_active:   ["PENDING","INVESTED","REDEEMED"].includes(order.status),
@@ -355,7 +375,7 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
       amount_algo:          order.amount_algo,
       lock_until:           order.lock_until,
       created_at:           order.created_at,
-      description:          order.description ?? null,
+      description,
       estimated_release_ts: position?.maturity_timestamp ?? null,
       lifecycle: {
         is_active:   ["PENDING","INVESTED","REDEEMED"].includes(order.status),
