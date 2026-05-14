@@ -2,8 +2,8 @@
  * Platform Routes
  *
  * GET  /platform/status  — public: operational status only (no yield data)
- * GET  /platform/stats   — INTERNAL admin only (requires X-Admin-Key header)
- * GET  /platform/config  — INTERNAL admin only (requires X-Admin-Key header)
+ * GET  /platform/stats   — INTERNAL admin only (requires Supabase session JWT)
+ * GET  /platform/config  — INTERNAL admin only (requires Supabase session JWT)
  * GET  /platform/tiers   — public: lock durations framed as operational info (no yield/APY)
  */
 import { Router, Request, Response } from "express";
@@ -12,7 +12,7 @@ import {
   algodClient, ESCROW_APP_ID, TBILL_APP_ID, PLATFORM_WALLET,
   VALID_TIERS, NETWORK, EXPLORER_BASE,
 } from "../config";
-import { requireAdminKey } from "../middleware/adminKey";
+import { requireAdminAuth } from "../middleware/adminAuth";
 
 export const platformRouter = Router();
 
@@ -37,7 +37,7 @@ platformRouter.get("/status", async (_req: Request, res: Response) => {
 // ─── GET /platform/stats (ADMIN ONLY) ───────────────────────────────────────
 // Internal analytics — full yield and T-bill investment data
 
-platformRouter.get("/stats", requireAdminKey, async (_req: Request, res: Response) => {
+platformRouter.get("/stats",  requireAdminAuth, async (_req: Request, res: Response) => {
   try {
     const [escrow, tbill] = await Promise.all([
       getEscrowGlobalState(),
@@ -80,7 +80,7 @@ platformRouter.get("/stats", requireAdminKey, async (_req: Request, res: Respons
 // ─── GET /platform/config (ADMIN ONLY) ──────────────────────────────────────
 // Internal contract addresses and infrastructure details
 
-platformRouter.get("/config", requireAdminKey, async (_req: Request, res: Response) => {
+platformRouter.get("/config", requireAdminAuth, async (_req: Request, res: Response) => {
   try {
     const [escrow, tbill, sp] = await Promise.all([
       getEscrowGlobalState(),

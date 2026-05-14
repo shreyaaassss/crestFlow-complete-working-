@@ -79,22 +79,21 @@ def suite_api():
     except Exception as e:
         record(suite, "GET /platform/status", False, str(e))
 
-    # Platform — admin-only endpoints (no key -> 403)
+    # Platform — admin-only endpoints (no token -> 401 Unauthorized)
     for ep in ["/platform/stats", "/platform/config"]:
         try:
             r = get(ep)
-            record(suite, f"GET {ep} (no key -> 403)", r.status_code == 403)
+            record(suite, f"GET {ep} (no token -> 401)", r.status_code == 401)
         except Exception as e:
-            record(suite, f"GET {ep} (no key -> 403)", False, str(e))
+            record(suite, f"GET {ep} (no token -> 401)", False, str(e))
 
-    # Platform — admin-only endpoints (with key -> 200)
-    admin_key = os.getenv("ADMIN_API_KEY", "change-me-in-production")
+    # Platform — admin endpoints with invalid token -> 401
     for ep in ["/platform/stats", "/platform/config"]:
         try:
-            r = s.get(f"{BASE_URL}{ep}", headers={"X-Admin-Key": admin_key})
-            record(suite, f"GET {ep} (with key -> 200)", r.status_code == 200)
+            r = s.get(f"{BASE_URL}{ep}", headers={"Authorization": "Bearer invalid.token.here"})
+            record(suite, f"GET {ep} (bad token -> 401)", r.status_code == 401)
         except Exception as e:
-            record(suite, f"GET {ep} (with key -> 200)", False, str(e))
+            record(suite, f"GET {ep} (bad token -> 401)", False, str(e))
 
     # Platform tiers — public, no yield data
     try:

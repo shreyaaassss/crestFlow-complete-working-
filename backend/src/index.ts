@@ -37,10 +37,26 @@ import { authRouter     } from "./routes/auth";
 import { ordersRouter   } from "./routes/orders";
 import { platformRouter } from "./routes/platform";
 import { accountRouter  } from "./routes/account";
-import { algodClient, ESCROW_APP_ID, TBILL_APP_ID, PORT } from "./config";
+import { algodClient, ESCROW_APP_ID, TBILL_APP_ID, PORT, EXPLORER_BASE } from "./config";
 
 const app = express();
-app.use(cors());
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",   // Vite dev server
+  "http://localhost:4173",   // Vite preview
+  process.env.FRONTEND_URL ?? "",
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // ── Health ───────────────────────────────────────────────────────────────────
@@ -77,14 +93,14 @@ app.get("/tx/:txid", async (req, res) => {
       confirmed:       confirmed,
       confirmed_round: confirmed ? Number(info.confirmedRound) : null,
       pool_error:      info.poolError || null,
-      explorer: `https://testnet.explorer.perawallet.app/tx/${req.params.txid}`,
+      explorer: `${EXPLORER_BASE}/tx/${req.params.txid}`,
     });
   } catch {
     // Transaction not in pool/not found — may be too old, check indexer
     res.status(404).json({
       txid:    req.params.txid,
       error:   "Transaction not found in pending pool. It may be confirmed or not submitted.",
-      explorer: `https://testnet.explorer.perawallet.app/tx/${req.params.txid}`,
+      explorer: `${EXPLORER_BASE}/tx/${req.params.txid}`,
     });
   }
 });

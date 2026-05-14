@@ -20,6 +20,7 @@
 import { Router, Request, Response } from "express";
 import algosdk from "algosdk";
 import { requireAuth } from "../middleware/jwt";
+import { isAdminRequest } from "../middleware/adminAuth";
 import {
   algodClient, ESCROW_APP_ID, TBILL_APP_ID, VALID_TIERS, TIER_ROUNDS, PLATFORM_WALLET, EXPLORER_BASE,
 } from "../config";
@@ -28,6 +29,7 @@ import {
   orderBoxKey, decodeOrder,
 } from "../services/chain";
 import { getTBillGlobalState } from "../services/chain";
+import { supabaseService } from "../services/supabase";
 
 export const ordersRouter = Router();
 
@@ -61,6 +63,7 @@ ordersRouter.get("/", async (req: Request, res: Response) => {
 
   try {
     let orders = await fetchAllOrders();
+    const admin = isAdminRequest(req);
 
     // Filters
     if (status)  orders = orders.filter((o) => o.order.status === status.toUpperCase());
@@ -79,15 +82,21 @@ ordersRouter.get("/", async (req: Request, res: Response) => {
       limit: lim,
       offset: off,
       has_more: off + lim < total,
-      orders: page.map(({ orderId, order }) => ({
-        order_id:    orderId,
-        status:      order.status,
-        buyer:       order.buyer,
-        seller:      order.seller,
-        amount_algo: order.amount_algo,
-        lock_until:  order.lock_until,
-        created_at:  order.created_at,
-      })),
+      orders: page.map(({ orderId, order }) =>
+        admin
+          // Admin: full unmasked spread including all internal fields
+          ? { order_id: orderId, ...order }
+          // Public: safe fields only — no yield, no tbill internals
+          : {
+              order_id:    orderId,
+              status:      order.status,
+              buyer:       order.buyer,
+              seller:      order.seller,
+              amount_algo: order.amount_algo,
+              lock_until:  order.lock_until,
+              created_at:  order.created_at,
+            }
+      ),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -247,7 +256,11 @@ ordersRouter.post("/prepare", requireAuth, async (req: Request, res: Response) =
 // ── POST /orders/submit ──────────────────────────────────────────────────────
 
 ordersRouter.post("/submit", requireAuth, async (req: Request, res: Response) => {
-  const { signed_txns } = req.body as { signed_txns?: string[] };
+  const { signed_txns, description, order_id } = req.body as {
+    signed_txns?:  string[];
+    description?:  string;
+    order_id?:     number;
+  };
 
   if (!Array.isArray(signed_txns) || signed_txns.length !== 2) {
     res.status(400).json({ error: "signed_txns must be an array of exactly 2 base64 strings" });
@@ -281,6 +294,20 @@ ordersRouter.post("/submit", requireAuth, async (req: Request, res: Response) =>
         explorer: `${EXPLORER_BASE}/tx/${txId}`,
       },
     });
+
+    // Write description to Supabase after responding — fire and forget
+    if (description && order_id) {
+      void (async () => {
+        try {
+          await supabaseService
+            .from("orders")
+            .update({ description: description.slice(0, 500) })
+            .eq("order_id", order_id);
+        } catch (e: any) {
+          console.warn("[orders/submit] description write failed:", e?.message);
+        }
+      })();
+    }
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
@@ -293,14 +320,33 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
   if (isNaN(orderId)) { res.status(400).json({ error: "Invalid order ID" }); return; }
 
   try {
+    const admin = isAdminRequest(req);
     const [order, position] = await Promise.all([
       fetchOrder(orderId),
       fetchPosition(orderId),
     ]);
 
-    // Enrich with position data and computed fields
-    const now = Math.floor(Date.now() / 1000);
+    if (admin) {
+      // Admin: full unmasked response — all fields including tbill position and yield
+      res.json({
+        order_id:        orderId,
+        ...order,
+        tbill_position:  position ?? null,
+        lifecycle: {
+          is_active:   ["PENDING","INVESTED","REDEEMED"].includes(order.status),
+          is_complete: order.status === "COMPLETED" || order.status === "CANCELLED",
+        },
+        links: {
+          buyer_explorer:  `${EXPLORER_BASE}/address/${order.buyer}`,
+          seller_explorer: `${EXPLORER_BASE}/address/${order.seller}`,
+          escrow_explorer: `${EXPLORER_BASE}/application/${ESCROW_APP_ID}`,
+          tbill_explorer:  `${EXPLORER_BASE}/application/${TBILL_APP_ID}`,
+        },
+      });
+      return;
+    }
 
+    // Public: masked response — safe operational fields only
     res.json({
       order_id:             orderId,
       status:               order.status,
@@ -309,7 +355,7 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
       amount_algo:          order.amount_algo,
       lock_until:           order.lock_until,
       created_at:           order.created_at,
-      // "maturity" is presented as an operational release date — not a financial instrument
+      description:          order.description ?? null,
       estimated_release_ts: position?.maturity_timestamp ?? null,
       lifecycle: {
         is_active:   ["PENDING","INVESTED","REDEEMED"].includes(order.status),

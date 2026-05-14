@@ -10,17 +10,18 @@ import { algodClient, ESCROW_APP_ID, TBILL_APP_ID } from "../config";
 export const STATUS_LABELS = ["PENDING", "INVESTED", "REDEEMED", "COMPLETED", "CANCELLED", "DISPUTED"];
 
 export interface DecodedOrder {
-  buyer:           string;
-  seller:          string;
-  amount:          number;   // microALGO
-  amount_algo:     number;
-  created_at:      number;   // round
-  lock_until:      number;   // round
-  status:          string;
-  status_code:     number;
-  invest_eligible: boolean;
-  yield_earned:    number;   // microALGO
+  buyer:            string;
+  seller:           string;
+  amount:           number;   // microALGO
+  amount_algo:      number;
+  created_at:       number;   // round
+  lock_until:       number;   // round
+  status:           string;
+  status_code:      number;
+  invest_eligible:  boolean;
+  yield_earned:     number;   // microALGO
   yield_earned_algo: number;
+  description?:     string;   // optional buyer-entered trade note (stored in Supabase)
 }
 
 export interface DecodedPosition {
