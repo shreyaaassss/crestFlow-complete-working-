@@ -48,11 +48,17 @@ const allowedOrigins = [
   process.env.FRONTEND_URL ?? "",
 ].filter(Boolean);
 
+// In dev, Vite port increments if 8080 is busy — allow any localhost port.
+const isLocalhostOrigin = (origin: string) =>
+  /^http:\/\/localhost:\d+$/.test(origin) ||
+  /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+
 app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (curl, Postman, server-to-server)
     if (!origin) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (isLocalhostOrigin(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,

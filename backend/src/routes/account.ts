@@ -9,6 +9,11 @@ import algosdk from "algosdk";
 import { algodClient, EXPLORER_BASE } from "../config";
 import { fetchAllOrders } from "../services/chain";
 
+const ALGO_BLOCK_TIME_SEC = 3.3;
+function roundToTs(orderRound: number, currentRound: number, nowSec: number): string {
+  return new Date(((nowSec) - (currentRound - orderRound) * ALGO_BLOCK_TIME_SEC) * 1000).toISOString();
+}
+
 export const accountRouter = Router();
 
 // ─── GET /account/:address ──────────────────────────────────────────────────
@@ -82,6 +87,10 @@ accountRouter.get("/:address/orders", async (req: Request, res: Response) => {
   try {
     const allOrders = await fetchAllOrders();
 
+    const sp = await algodClient.getTransactionParams().do();
+    const currentRound = Number((sp as any).firstRound);
+    const nowSec = Math.floor(Date.now() / 1000);
+
     const matched = allOrders.filter(({ order }) => {
       const isBuyer  = order.buyer  === address;
       const isSeller = order.seller === address;
@@ -93,6 +102,9 @@ accountRouter.get("/:address/orders", async (req: Request, res: Response) => {
       if (statusFilter && order.status !== statusFilter.toUpperCase()) return false;
       return true;
     });
+
+    // Sort: most recent first
+    matched.sort((a, b) => b.order.created_at - a.order.created_at);
 
     // Compute summary stats
     const totalPaidAlgo = matched
@@ -117,8 +129,8 @@ accountRouter.get("/:address/orders", async (req: Request, res: Response) => {
         buyer:       order.buyer,
         seller:      order.seller,
         amount_algo: order.amount_algo,
-        lock_until:  order.lock_until,
-        created_at:  order.created_at,
+        lock_until:  roundToTs(order.lock_until, currentRound, nowSec),
+        created_at:  roundToTs(order.created_at, currentRound, nowSec),
       })),
     });
   } catch (err: any) {

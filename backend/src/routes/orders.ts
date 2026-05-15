@@ -20,7 +20,7 @@
 import { Router, Request, Response } from "express";
 import algosdk from "algosdk";
 import { requireAuth } from "../middleware/jwt";
-import { isAdminRequest } from "../middleware/adminAuth";
+import { isAdminRequestAsync } from "../middleware/adminAuth";
 import {
   algodClient, ESCROW_APP_ID, TBILL_APP_ID, VALID_TIERS, TIER_ROUNDS, PLATFORM_WALLET, EXPLORER_BASE,
 } from "../config";
@@ -34,6 +34,14 @@ import { supabaseService } from "../services/supabase";
 export const ordersRouter = Router();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+// Convert an Algorand round number to an approximate Unix timestamp (seconds).
+// Uses current round + current wall-clock time as reference, with ~3.3s/block.
+const ALGO_BLOCK_TIME_SEC = 3.3;
+function roundToTimestamp(orderRound: number, currentRound: number, nowSec: number): string {
+  const deltaSec = (currentRound - orderRound) * ALGO_BLOCK_TIME_SEC;
+  return new Date((nowSec - deltaSec) * 1000).toISOString();
+}
 
 function selectTier(lock_days: number): number {
   for (let i = VALID_TIERS.length - 1; i >= 0; i--) {
@@ -63,12 +71,20 @@ ordersRouter.get("/", async (req: Request, res: Response) => {
 
   try {
     let orders = await fetchAllOrders();
-    const admin = isAdminRequest(req);
+    const admin = await isAdminRequestAsync(req);
 
     // Filters
     if (status)  orders = orders.filter((o) => o.order.status === status.toUpperCase());
     if (buyer)   orders = orders.filter((o) => o.order.buyer  === buyer);
     if (seller)  orders = orders.filter((o) => o.order.seller === seller);
+
+    // Get current round for round→timestamp conversion AND for sorting
+    const sp = await algodClient.getTransactionParams().do();
+    const currentRound = Number((sp as any).firstRound);
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // Sort: most recent first — higher created_at round = later block = newer order
+    orders = [...orders].sort((a, b) => b.order.created_at - a.order.created_at);
 
     const total = orders.length;
 
@@ -84,17 +100,20 @@ ordersRouter.get("/", async (req: Request, res: Response) => {
       has_more: off + lim < total,
       orders: page.map(({ orderId, order }) =>
         admin
-          // Admin: full unmasked spread including all internal fields
-          ? { order_id: orderId, ...order }
-          // Public: safe fields only — no yield, no tbill internals
+          ? {
+              order_id:          orderId,
+              ...order,
+              created_at:        roundToTimestamp(order.created_at, currentRound, nowSec),
+              lock_until:        roundToTimestamp(order.lock_until, currentRound, nowSec),
+            }
           : {
               order_id:    orderId,
               status:      order.status,
               buyer:       order.buyer,
               seller:      order.seller,
               amount_algo: order.amount_algo,
-              lock_until:  order.lock_until,
-              created_at:  order.created_at,
+              lock_until:  roundToTimestamp(order.lock_until, currentRound, nowSec),
+              created_at:  roundToTimestamp(order.created_at, currentRound, nowSec),
             }
       ),
     });
@@ -180,7 +199,6 @@ ordersRouter.post("/prepare", requireAuth, async (req: Request, res: Response) =
 
   const amountMicro = Math.round(amount_algo * 1e6);
   const tier        = selectTier(lock_days);
-  const lockRounds  = TIER_ROUNDS[tier];
   const orderId     = Math.floor(Date.now() / 1000) % 1_000_000;
   const escrowAddr  = algosdk.getApplicationAddress(ESCROW_APP_ID).toString();
 
@@ -188,6 +206,12 @@ ordersRouter.post("/prepare", requireAuth, async (req: Request, res: Response) =
     const tbill = await getTBillGlobalState();
     const yieldMicro = calcYield(amountMicro, tbill.yield_rate_pct, tier);
     const demoSec    = tier * tbill.demo_multiplier;
+
+    // In demo mode, compress lock period to demo seconds (1 day = 1 minute with multiplier=60).
+    // At ~3.3s/block, convert demo seconds to rounds. Minimum 10 rounds for safety.
+    const lockRounds = tbill.demo_mode
+      ? Math.max(10, Math.ceil(demoSec / 3.3))
+      : TIER_ROUNDS[tier];
 
     const sp = await algodClient.getTransactionParams().do();
 
@@ -336,8 +360,8 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
   if (isNaN(orderId)) { res.status(400).json({ error: "Invalid order ID" }); return; }
 
   try {
-    const admin = isAdminRequest(req);
-    const [order, position, dbOrder] = await Promise.all([
+    const [admin, order, position, dbOrder] = await Promise.all([
+      isAdminRequestAsync(req),
       fetchOrder(orderId),
       fetchPosition(orderId),
       supabaseService.from("orders").select("description").eq("order_id", orderId).maybeSingle(),
@@ -345,11 +369,19 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
 
     const description = dbOrder?.data?.description || null;
 
+    // Convert round numbers to ISO timestamps
+    const sp2 = await algodClient.getTransactionParams().do();
+    const currentRound2 = Number((sp2 as any).firstRound);
+    const nowSec2 = Math.floor(Date.now() / 1000);
+    const createdAtIso   = roundToTimestamp(order.created_at, currentRound2, nowSec2);
+    const lockUntilIso   = roundToTimestamp(order.lock_until, currentRound2, nowSec2);
+
     if (admin) {
-      // Admin: full unmasked response — all fields including tbill position and yield
       res.json({
         order_id:        orderId,
         ...order,
+        created_at:      createdAtIso,
+        lock_until:      lockUntilIso,
         description,
         tbill_position:  position ?? null,
         lifecycle: {
@@ -366,15 +398,14 @@ ordersRouter.get("/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // Public: masked response — safe operational fields only
     res.json({
       order_id:             orderId,
       status:               order.status,
       buyer:                order.buyer,
       seller:               order.seller,
       amount_algo:          order.amount_algo,
-      lock_until:           order.lock_until,
-      created_at:           order.created_at,
+      lock_until:           lockUntilIso,
+      created_at:           createdAtIso,
       description,
       estimated_release_ts: position?.maturity_timestamp ?? null,
       lifecycle: {
