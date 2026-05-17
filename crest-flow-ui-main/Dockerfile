@@ -25,14 +25,17 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# TanStack Start 1.x requires Node.js >= 22
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/dist ./dist
+# vinxi start reads vite.config.ts + tsconfig.json to locate build output
+COPY --from=builder /app/vite.config.ts ./
+COPY --from=builder /app/tsconfig.json ./
 
 EXPOSE 3000
 
 ENV PORT=3000
 
-# TanStack Start + Vite builds the SSR server to dist/server/server.js
-CMD ["node", "dist/server/server.js"]
+# TanStack Start (Vinxi) needs "vinxi start" to boot the HTTP server.
+# dist/server/server.js is the SSR handler module — it doesn't self-listen.
+CMD ["./node_modules/.bin/vinxi", "start"]
