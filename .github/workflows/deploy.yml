@@ -233,7 +233,7 @@ jobs:
                 {"name":"SUPABASE_ANON_KEY","value":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldHNzeWp5aG11am14ZWZ3eHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MjUwODQsImV4cCI6MjA5NDMwMTA4NH0.FFTnyf3l1hWq_SzK_-G5cNwQoofXPbhvzJb7KX6Xfyk"},
                 {"name":"SUPABASE_SERVICE_ROLE_KEY","value":$SUPABASE_KEY},
                 {"name":"ORCHESTRATOR_MNEMONIC","value":$ORCH},
-                {"name":"POLL_INTERVAL_MS","value":"30000"},
+                {"name":"POLL_INTERVAL_MS","value":"5000"},
                 {"name":"MIN_ORDER_AMOUNT_MICROALGO","value":"5000000"},
                 {"name":"YIELD_BACKEND","value":"reserve"}
               ]')
