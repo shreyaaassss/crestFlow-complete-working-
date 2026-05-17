@@ -121,7 +121,7 @@ jobs:
             | (.containerDefinitions[0].environment[] | select(.name=="SUPABASE_SERVICE_ROLE_KEY")).value = $SUPABASE_KEY
             | (.containerDefinitions[0].environment[] | select(.name=="DEPLOYER_MNEMONIC")).value = $DEPLOYER
             | (.containerDefinitions[0].environment[] | select(.name=="ADMIN_API_KEY")).value = $ADMIN_KEY
-            | (.containerDefinitions[0].environment[] | select(.name=="FRONTEND_URL")).value = $FRONTEND
+            | (.containerDefinitions[0].environment[] | select(.name=="FRONTEND_URL")).value = "https://d3sy24wytumdht.cloudfront.net,http://crestflow-frontend-alb-1530103458.ap-south-1.elb.amazonaws.com"
             | (.containerDefinitions[0].environment[] | select(.name=="ADMIN_EMAIL")).value = "admin@crestflow.com"')
 
           NEW_ARN=$(aws ecs register-task-definition \
