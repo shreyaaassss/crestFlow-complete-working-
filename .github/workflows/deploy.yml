@@ -12,9 +12,9 @@ env:
   ECR_FRONTEND: crestflow-frontend
   ECR_ORCHESTRATOR: crestflow-orchestrator
   ECS_CLUSTER: crestflow-cluster
-  # ALB DNS names (stable - never change)
-  BACKEND_URL: "http://crestflow-backend-alb-2020015408.ap-south-1.elb.amazonaws.com"
-  FRONTEND_URL: "http://crestflow-frontend-alb-1530103458.ap-south-1.elb.amazonaws.com"
+  # CloudFront HTTPS URLs (what the browser sees)
+  BACKEND_URL: "https://dwn69a9pf40yt.cloudfront.net"
+  FRONTEND_URL: "https://d3sy24wytumdht.cloudfront.net"
   # ECS networking
   SUBNETS: "subnet-02c88c5054720e50c,subnet-00a6046ba1f26bf42"
   TASK_SG: "sg-0fc0afe2820df1ad1"
@@ -263,8 +263,8 @@ jobs:
           echo "════════════════════════════════════════════════════"
           echo "  CrestFlow Deployment Summary"
           echo "════════════════════════════════════════════════════"
-          echo "  Backend  : $BACKEND_URL/health"
-          echo "  Frontend : $FRONTEND_URL"
+          echo "  Frontend : https://d3sy24wytumdht.cloudfront.net"
+          echo "  Backend  : https://dwn69a9pf40yt.cloudfront.net/health"
           echo "  Orchestrator: ECS crestflow-cluster/crestflow-orchestrator"
           echo ""
           echo "  ECS tasks take ~2-3 minutes to start."
