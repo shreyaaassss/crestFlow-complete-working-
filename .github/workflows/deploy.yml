@@ -1,0 +1,205 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: "385467777110"
+  ECR_BACKEND: crestflow-backend
+  ECR_FRONTEND: crestflow-frontend
+  ECR_ORCHESTRATOR: crestflow-orchestrator
+  ECS_CLUSTER: crestflow-cluster
+  ECS_SERVICE_ORCHESTRATOR: crestflow-orchestrator
+
+jobs:
+  # ─── Build & Push Docker images to ECR ──────────────────────────────────────
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha }}
+      ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: meta
+        run: echo "sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      # ── Backend ─────────────────────────────────────────────────────────────
+      - name: Build & push backend image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.sha }}
+        run: |
+          docker build \
+            -t $REGISTRY/$ECR_BACKEND:$TAG \
+            -t $REGISTRY/$ECR_BACKEND:latest \
+            ./backend
+          docker push $REGISTRY/$ECR_BACKEND:$TAG
+          docker push $REGISTRY/$ECR_BACKEND:latest
+          echo "Backend image: $REGISTRY/$ECR_BACKEND:$TAG"
+
+      # ── Frontend (VITE_* vars baked in at build time) ────────────────────────
+      - name: Build & push frontend image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.sha }}
+        run: |
+          docker build \
+            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+            --build-arg VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }} \
+            --build-arg VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }} \
+            --build-arg VITE_ADMIN_EMAIL=${{ secrets.VITE_ADMIN_EMAIL }} \
+            -t $REGISTRY/$ECR_FRONTEND:$TAG \
+            -t $REGISTRY/$ECR_FRONTEND:latest \
+            ./crest-flow-ui-main
+          docker push $REGISTRY/$ECR_FRONTEND:$TAG
+          docker push $REGISTRY/$ECR_FRONTEND:latest
+          echo "Frontend image: $REGISTRY/$ECR_FRONTEND:$TAG"
+
+      # ── Orchestrator ─────────────────────────────────────────────────────────
+      - name: Build & push orchestrator image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ steps.meta.outputs.sha }}
+        run: |
+          docker build \
+            -t $REGISTRY/$ECR_ORCHESTRATOR:$TAG \
+            -t $REGISTRY/$ECR_ORCHESTRATOR:latest \
+            ./orchestrator
+          docker push $REGISTRY/$ECR_ORCHESTRATOR:$TAG
+          docker push $REGISTRY/$ECR_ORCHESTRATOR:latest
+          echo "Orchestrator image: $REGISTRY/$ECR_ORCHESTRATOR:$TAG"
+
+  # ─── Deploy Backend (App Runner) ────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend (App Runner)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Trigger App Runner backend deployment
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='crestflow-backend'].ServiceArn" \
+            --output text)
+
+          if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
+            echo "App Runner service 'crestflow-backend' not found."
+            echo "Run aws/setup.sh first to create infrastructure."
+            exit 1
+          fi
+
+          echo "Deploying backend service: $SERVICE_ARN"
+          aws apprunner start-deployment --service-arn "$SERVICE_ARN"
+          echo "Backend deployment triggered. App Runner will pull the latest ECR image."
+
+  # ─── Deploy Frontend (App Runner) ───────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend (App Runner)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Trigger App Runner frontend deployment
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='crestflow-frontend'].ServiceArn" \
+            --output text)
+
+          if [ -z "$SERVICE_ARN" ] || [ "$SERVICE_ARN" = "None" ]; then
+            echo "App Runner service 'crestflow-frontend' not found."
+            echo "Run aws/setup.sh first to create infrastructure."
+            exit 1
+          fi
+
+          echo "Deploying frontend service: $SERVICE_ARN"
+          aws apprunner start-deployment --service-arn "$SERVICE_ARN"
+          echo "Frontend deployment triggered. App Runner will pull the latest ECR image."
+
+  # ─── Deploy Orchestrator (ECS Fargate) ──────────────────────────────────────
+  deploy-orchestrator:
+    name: Deploy Orchestrator (ECS Fargate)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy orchestrator to ECS
+        env:
+          REGISTRY: ${{ needs.build-and-push.outputs.ecr-registry }}
+          TAG: ${{ needs.build-and-push.outputs.image-tag }}
+        run: |
+          NEW_IMAGE="$REGISTRY/$ECR_ORCHESTRATOR:$TAG"
+          echo "Deploying orchestrator image: $NEW_IMAGE"
+
+          # Get current task definition, swap the image, strip read-only fields
+          CURRENT=$(aws ecs describe-task-definition \
+            --task-definition crestflow-orchestrator \
+            --query taskDefinition 2>/dev/null)
+
+          if [ -z "$CURRENT" ] || [ "$CURRENT" = "null" ]; then
+            echo "Task definition 'crestflow-orchestrator' not found."
+            echo "Run aws/setup.sh first to create infrastructure."
+            exit 1
+          fi
+
+          NEW_TASK_DEF=$(echo "$CURRENT" | jq \
+            --arg IMAGE "$NEW_IMAGE" \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                 .compatibilities, .registeredAt, .registeredBy)
+            | .containerDefinitions[0].image = $IMAGE')
+
+          NEW_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "New task definition: $NEW_ARN"
+
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE_ORCHESTRATOR \
+            --task-definition "$NEW_ARN" \
+            --force-new-deployment \
+            --query 'service.deployments[0].status' \
+            --output text
+
+          echo "Orchestrator deployment initiated."
