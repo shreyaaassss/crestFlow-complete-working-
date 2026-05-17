@@ -28,14 +28,12 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/dist ./dist
-# vinxi start reads vite.config.ts + tsconfig.json to locate build output
-COPY --from=builder /app/vite.config.ts ./
-COPY --from=builder /app/tsconfig.json ./
+# Custom HTTP server that wraps the Fetch API handler from dist/server/server.js
+COPY --from=builder /app/server.mjs ./
 
 EXPOSE 3000
 
 ENV PORT=3000
 
-# TanStack Start (Vinxi) needs "vinxi start" to boot the HTTP server.
-# dist/server/server.js is the SSR handler module — it doesn't self-listen.
-CMD ["./node_modules/.bin/vinxi", "start"]
+# server.mjs: wraps dist/server/server.js (Fetch handler) in a Node.js HTTP server
+CMD ["node", "server.mjs"]
