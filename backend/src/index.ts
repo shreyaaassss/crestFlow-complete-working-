@@ -42,10 +42,11 @@ import { algodClient, ESCROW_APP_ID, TBILL_APP_ID, PORT, EXPLORER_BASE } from ".
 const app = express();
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
+// FRONTEND_URL supports comma-separated values for multiple allowed origins
 const allowedOrigins = [
-  "http://localhost:5173",   // Vite dev server
-  "http://localhost:4173",   // Vite preview
-  process.env.FRONTEND_URL ?? "",
+  "http://localhost:5173",
+  "http://localhost:4173",
+  ...(process.env.FRONTEND_URL ?? "").split(",").map(s => s.trim()),
 ].filter(Boolean);
 
 // In dev, Vite port increments if 8080 is busy — allow any localhost port.
