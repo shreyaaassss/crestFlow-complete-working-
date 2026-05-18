@@ -6,6 +6,30 @@
 
 ---
 
+> [!IMPORTANT]
+> **Current Status (Testnet v2):** Yield is paid from a **pre-funded on-chain reserve** (`YIELD_BACKEND=reserve`).
+> The Folks Finance and Tinyman integrations are **stubs** — they exist in the codebase with full
+> implementation guides but are not activated. The swap UI widget has been **removed** from the
+> order creation flow because it was misleading: swap is an internal investment mechanism, not a
+> user payout preference.
+>
+> **Mainnet Investment Flow (Phase 2):**
+> ```
+> User locks ALGO in escrow
+>    ↓  Orchestrator calls Tinyman v2 (SWAP_BACKEND=tinyman)
+> ALGO → USDC
+>    ↓  Orchestrator deposits into Folks Finance ALGO/USDC pool (YIELD_BACKEND=folks-finance)
+> USDC earning ~3–5% APY from Folks Finance
+>    ↓  At T-Bill maturity: orchestrator withdraws from Folks Finance
+> USDC (principal + real yield)
+>    ↓  Orchestrator swaps back via Tinyman
+> ALGO → returned to seller
+> ```
+> To activate: set `YIELD_BACKEND=folks-finance` and `SWAP_BACKEND=tinyman` in production env
+> and implement the two stubs listed in Section 1.2 and Section 2.
+
+---
+
 ## PART 1 — Folks Finance Audit
 
 ### 1.1 What is Folks Finance (in this context)?

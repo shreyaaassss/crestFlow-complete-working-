@@ -4,7 +4,6 @@ import { api, type EstimateResponse, type PrepareResponse, type SubmitResponse, 
 import { useAuth } from "@/lib/auth";
 import { signOrderTxnGroup } from "@/lib/pera";
 import { fmtAlgo, fmtPct } from "@/lib/format";
-import { SwapWidget, type SwapMode } from "@/components/SwapWidget";
 
 export const Route = createFileRoute("/orders/new")({
   head: () => ({ meta: [{ title: "New order — CrestFlow" }] }),
@@ -21,7 +20,6 @@ function NewOrderPage() {
   const [lockDays, setLockDays] = useState<number>(7);
   const [seller, setSeller] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [swapMode, setSwapMode] = useState<SwapMode>("none");
   const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
   const [estErr, setEstErr] = useState<string | null>(null);
 
@@ -83,7 +81,6 @@ function NewOrderPage() {
           signed_txns: signed,
           order_id: prepared.order_id,
           description: description.trim() || undefined,
-          swap_preference: swapMode !== "none" ? swapMode : undefined,
         }),
       });
       setSubmitted(res);
@@ -183,17 +180,9 @@ function NewOrderPage() {
                     </p>
                   </Field>
 
-                  {/* Swap preference — shown when amount ≥ 5 ALGO (invest eligible) */}
-                  {amount >= 5 && (
-                    <Field label="Payout currency (at maturity)">
-                      <SwapWidget
-                        algoAmount={amount}
-                        estimatedYieldAlgo={estimate?.estimated_yield_algo ?? 0}
-                        defaultMode={swapMode}
-                        onChange={setSwapMode}
-                      />
-                    </Field>
-                  )}
+                  {/* Swap preference — REMOVED: swap is an internal investment mechanism
+                      (ALGO → USDC → Folks Finance), not a user payout preference.
+                      Will be wired up transparently in Mainnet Phase 2. */}
 
                   <button
                     onClick={handlePrepare}
@@ -283,6 +272,10 @@ function NewOrderPage() {
             <p className="mt-4 text-xs text-[var(--muted)]">
               Estimates use the live tier table from the orchestrator. Final yield depends on
               actual T-Bill maturity timing.
+            </p>
+            <p className="mt-3 rounded-md border border-[var(--hairline)] bg-white/50 px-3 py-2 text-xs text-[var(--ink)]/60">
+              <strong>Testnet mode</strong> — yield is paid from an on-chain reserve.
+              On mainnet, ALGO will be invested via Folks Finance to earn real DeFi yield.
             </p>
           </div>
         </div>
