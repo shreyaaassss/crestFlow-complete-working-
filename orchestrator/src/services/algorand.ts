@@ -14,7 +14,7 @@ export async function getCurrentBlockTimestamp(): Promise<number> {
   const status = await algodClient.status().do();
   const round = Number(status["lastRound"]);
   const blockInfo = await algodClient.block(round).do();
-  return Number(blockInfo.block.ts);
+  return Number(blockInfo.block.header.timestamp);
 }
 
 export async function sendPayment(receiver: string, amountMicroAlgo: number): Promise<string> {
