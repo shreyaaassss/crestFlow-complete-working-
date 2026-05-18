@@ -5,12 +5,12 @@ export function SiteFooter() {
     <footer className="border-t border-[var(--hairline)] bg-[var(--canvas)]">
       <div className="container-editorial section-y grid gap-10 md:grid-cols-5">
         <div className="md:col-span-2">
-          <div className="flex items-center gap-2">
-            <svg className="h-6 w-6" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 8a9 9 0 1 0 0 12" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" />
-              <path d="M11 17l4-4 4 4 5-5" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <div className="flex items-center gap-2.5">
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 8L12 4L5 8v8l7 4 7-4" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3 12c3-3 6-3 9 0s6 3 9 0" stroke="var(--link)" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
-            <span className="text-[15px] font-medium text-[var(--ink)]">CrestFlow</span>
+            <span className="text-[15px] font-semibold text-[var(--ink)]">CrestFlow</span>
           </div>
           <p className="mt-4 max-w-sm text-sm text-[var(--muted)]">
             Non-custodial T-Bill yield engine on Algorand. Lock, invest, redeem — all on-chain.

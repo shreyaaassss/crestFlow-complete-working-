@@ -8,12 +8,12 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[var(--canvas)]/95 backdrop-blur">
       <div className="container-editorial flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <svg className="h-7 w-7" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 8a9 9 0 1 0 0 12" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M11 17l4-4 4 4 5-5" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <Link to="/" className="flex items-center gap-2.5">
+          <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 8L12 4L5 8v8l7 4 7-4" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 12c3-3 6-3 9 0s6 3 9 0" stroke="var(--link)" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
-          <span className="text-[15px] font-medium tracking-tight text-[var(--ink)]">
+          <span className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
             CrestFlow
           </span>
         </Link>
