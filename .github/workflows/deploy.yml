@@ -122,7 +122,16 @@ jobs:
             | (.containerDefinitions[0].environment[] | select(.name=="DEPLOYER_MNEMONIC")).value = $DEPLOYER
             | (.containerDefinitions[0].environment[] | select(.name=="ADMIN_API_KEY")).value = $ADMIN_KEY
             | (.containerDefinitions[0].environment[] | select(.name=="FRONTEND_URL")).value = "https://d3sy24wytumdht.cloudfront.net,http://crestflow-frontend-alb-1530103458.ap-south-1.elb.amazonaws.com"
-            | (.containerDefinitions[0].environment[] | select(.name=="ADMIN_EMAIL")).value = "admin@crestflow.com"')
+            | (.containerDefinitions[0].environment[] | select(.name=="ADMIN_EMAIL")).value = "admin@crestflow.com"
+            | (.containerDefinitions[0].environment[] | select(.name=="ESCROW_APP_ID")).value = "762780212"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_APP_ID")).value = "762780155"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_1D_ASA")).value = "762780183"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_3D_ASA")).value = "762780184"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_7D_ASA")).value = "762780185"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_14D_ASA")).value = "762780186"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_30D_ASA")).value = "762780197"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_60D_ASA")).value = "762780198"
+            | (.containerDefinitions[0].environment[] | select(.name=="TBILL_90D_ASA")).value = "762780199"')
 
           NEW_ARN=$(aws ecs register-task-definition \
             --cli-input-json "$NEW_TASK" \
