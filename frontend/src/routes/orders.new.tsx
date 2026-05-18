@@ -83,6 +83,7 @@ function NewOrderPage() {
           signed_txns: signed,
           order_id: prepared.order_id,
           description: description.trim() || undefined,
+          swap_preference: swapMode !== "none" ? swapMode : undefined,
         }),
       });
       setSubmitted(res);
@@ -220,8 +221,15 @@ function NewOrderPage() {
                 <div className="py-12 text-center">
                   <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[var(--hairline)] border-t-[var(--primary)]" />
                   <p className="mt-4 text-sm text-[var(--body)]">
-                    {phase === "signing" ? "Sign the atomic group in Pera Wallet…" : "Submitting to the network…"}
+                    {phase === "signing"
+                      ? "Check Pera Wallet on your phone — approve the 2 lock-in transactions…"
+                      : "Submitting to the network…"}
                   </p>
+                  {phase === "signing" && (
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Didn't see a prompt? Open Pera Wallet app manually.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -320,7 +328,8 @@ function ReviewBlock({
       </dl>
 
       <p className="mt-6 rounded-md bg-[var(--surface-soft)] p-3 text-xs text-[var(--body)]">
-        You'll sign 2 transactions as a single atomic group: a payment to escrow + an app-call to record the order.
+        You'll sign <strong>2 transactions</strong> as a single atomic group: a payment to escrow + an app-call to record the order.
+        {" "}The Pera Wallet prompt will appear on your phone — open the app if it doesn't come automatically.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">

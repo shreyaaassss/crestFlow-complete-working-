@@ -101,8 +101,10 @@ export async function signOrderTxnGroup(
   const pera = getPera();
   const t0 = algosdk.decodeUnsignedTransaction(b64ToBytes(unsignedB64[0]));
   const t1 = algosdk.decodeUnsignedTransaction(b64ToBytes(unsignedB64[1]));
-  const signed = await pera.signTransaction([
-    [{ txn: t0 }, { txn: t1 }],
-  ]);
+  const signed = await withTimeout(
+    pera.signTransaction([[{ txn: t0 }, { txn: t1 }]]),
+    60_000,
+    "Pera Wallet did not respond within 60 seconds. Open the app and try again.",
+  );
   return [bytesToB64(signed[0]), bytesToB64(signed[1])];
 }
