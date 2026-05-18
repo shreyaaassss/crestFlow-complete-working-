@@ -69,7 +69,7 @@ jobs:
             --build-arg VITE_ADMIN_EMAIL="${{ secrets.VITE_ADMIN_EMAIL }}" \
             -t $ECR_REGISTRY/$ECR_FRONTEND:$TAG \
             -t $ECR_REGISTRY/$ECR_FRONTEND:latest \
-            ./crest-flow-ui-main
+            ./frontend
           docker push $ECR_REGISTRY/$ECR_FRONTEND:$TAG
           docker push $ECR_REGISTRY/$ECR_FRONTEND:latest
           echo "✓ Frontend: $ECR_REGISTRY/$ECR_FRONTEND:$TAG"
@@ -211,6 +211,15 @@ jobs:
             --arg IMAGE "$NEW_IMAGE" \
             --arg SUPABASE_KEY "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             --arg ORCH "${{ secrets.ORCHESTRATOR_MNEMONIC }}" \
+            --arg ESCROW "${{ secrets.ESCROW_APP_ID }}" \
+            --arg TBILL "${{ secrets.TBILL_APP_ID }}" \
+            --arg ASA1D "${{ secrets.TBILL_1D_ASA }}" \
+            --arg ASA3D "${{ secrets.TBILL_3D_ASA }}" \
+            --arg ASA7D "${{ secrets.TBILL_7D_ASA }}" \
+            --arg ASA14D "${{ secrets.TBILL_14D_ASA }}" \
+            --arg ASA30D "${{ secrets.TBILL_30D_ASA }}" \
+            --arg ASA60D "${{ secrets.TBILL_60D_ASA }}" \
+            --arg ASA90D "${{ secrets.TBILL_90D_ASA }}" \
             'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
             | .containerDefinitions[0].image = $IMAGE
             | .containerDefinitions[0].command = []
@@ -221,15 +230,15 @@ jobs:
                 {"name":"ALGOD_TOKEN","value":""},
                 {"name":"INDEXER_SERVER","value":"https://testnet-idx.algonode.cloud"},
                 {"name":"INDEXER_PORT","value":"443"},
-                {"name":"ESCROW_APP_ID","value":"762218790"},
-                {"name":"TBILL_APP_ID","value":"762214340"},
-                {"name":"TBILL_1D_ASA","value":"762214378"},
-                {"name":"TBILL_3D_ASA","value":"762214379"},
-                {"name":"TBILL_7D_ASA","value":"762214380"},
-                {"name":"TBILL_14D_ASA","value":"762214381"},
-                {"name":"TBILL_30D_ASA","value":"762214389"},
-                {"name":"TBILL_60D_ASA","value":"762214390"},
-                {"name":"TBILL_90D_ASA","value":"762214391"},
+                {"name":"ESCROW_APP_ID","value":$ESCROW},
+                {"name":"TBILL_APP_ID","value":$TBILL},
+                {"name":"TBILL_1D_ASA","value":$ASA1D},
+                {"name":"TBILL_3D_ASA","value":$ASA3D},
+                {"name":"TBILL_7D_ASA","value":$ASA7D},
+                {"name":"TBILL_14D_ASA","value":$ASA14D},
+                {"name":"TBILL_30D_ASA","value":$ASA30D},
+                {"name":"TBILL_60D_ASA","value":$ASA60D},
+                {"name":"TBILL_90D_ASA","value":$ASA90D},
                 {"name":"PLATFORM_WALLET_ADDRESS","value":"A2EGSHGIZMU7X6YRSLSC7GVDTXE6MAQCZODAWHWOVHLW6HCLOBJSTWLOFY"},
                 {"name":"SUPABASE_URL","value":"https://yetssyjyhmujmxefwxvh.supabase.co"},
                 {"name":"SUPABASE_ANON_KEY","value":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlldHNzeWp5aG11am14ZWZ3eHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MjUwODQsImV4cCI6MjA5NDMwMTA4NH0.FFTnyf3l1hWq_SzK_-G5cNwQoofXPbhvzJb7KX6Xfyk"},
