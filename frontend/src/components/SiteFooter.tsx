@@ -6,7 +6,10 @@ export function SiteFooter() {
       <div className="container-editorial section-y grid gap-10 md:grid-cols-5">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-md bg-[var(--primary)]" />
+            <svg className="h-6 w-6" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 8a9 9 0 1 0 0 12" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M11 17l4-4 4 4 5-5" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <span className="text-[15px] font-medium text-[var(--ink)]">CrestFlow</span>
           </div>
           <p className="mt-4 max-w-sm text-sm text-[var(--muted)]">
