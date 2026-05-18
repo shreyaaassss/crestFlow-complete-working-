@@ -8,6 +8,8 @@ import * as logger from "../utils/logger";
 import { withRetry } from "../utils/retry";
 import { getYieldBackend } from "../services/yield-backend";
 
+import * as algorand from "../services/algorand";
+
 export async function investPendingOrders(): Promise<void> {
   const pendingOrders = await escrow.findOrdersByStatus(OrderStatus.PENDING);
   const eligible = pendingOrders.filter((o) => o.order.investEligible);
@@ -15,15 +17,24 @@ export async function investPendingOrders(): Promise<void> {
   if (eligible.length === 0) return;
 
   logger.info(`Found ${eligible.length} eligible PENDING order(s) to invest`);
+  
+  const currentRound = await algorand.getCurrentRound();
+  const currentTs = Math.floor(Date.now() / 1000);
 
   for (const { orderId, order } of eligible) {
     await withRetry(async () => {
       const lockDurationRounds = order.lockUntil - order.createdAt;
       const tbillType = tbill.selectTBillType(lockDurationRounds);
       await escrow.transferToTreasury(orderId);
-      // Pass order.createdAt so the contract anchors maturity to order creation
-      // time, not to the (later) investment time (Issue 2 fix).
-      await tbill.invest(orderId, order.amount, tbillType, order.createdAt);
+      
+      // Convert the order creation round to a Unix timestamp (~3.3s/block)
+      // because the T-Bill contract expects a timestamp, not a round number.
+      const deltaSec = (currentRound - order.createdAt) * 3.3;
+      const orderCreatedAtTimestamp = Math.floor(currentTs - deltaSec);
+
+      // Pass orderCreatedAtTimestamp so the contract anchors maturity to order creation
+      // time, not to the (later) investment time.
+      await tbill.invest(orderId, order.amount, tbillType, orderCreatedAtTimestamp);
 
       // Yield backend hook — routes to DeFi on mainnet Phase 2, no-op for reserve
       const yb = getYieldBackend();
