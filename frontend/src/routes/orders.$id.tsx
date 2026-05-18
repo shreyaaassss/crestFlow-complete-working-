@@ -51,9 +51,9 @@ function OrderDetailPage() {
         setErr(null);
         if (data.lifecycle?.is_active) {
           const interval =
-            data.status === "PENDING" ? 15000 :
-            data.status === "INVESTED" ? 30000 :
-            data.status === "REDEEMED" ? 10000 : 30000;
+            data.status === "PENDING" ? 5000 :
+            data.status === "INVESTED" ? 5000 :
+            data.status === "REDEEMED" ? 5000 : 5000;
           timer = setTimeout(tick, interval);
         }
       } catch (e: any) {
