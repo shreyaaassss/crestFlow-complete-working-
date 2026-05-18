@@ -247,8 +247,7 @@ jobs:
                 {"name":"POLL_INTERVAL_MS","value":"5000"},
                 {"name":"MIN_ORDER_AMOUNT_MICROALGO","value":"5000000"},
                 {"name":"YIELD_BACKEND","value":"reserve"},
-                {"name":"ORACLE_BACKEND","value":"mock"},
-                {"name":"SWAP_BACKEND","value":"mock"}
+                {"name":"ORACLE_BACKEND","value":"mock"}
               ]')
 
           NEW_ARN=$(aws ecs register-task-definition \

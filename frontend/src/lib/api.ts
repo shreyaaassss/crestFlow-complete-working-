@@ -213,24 +213,3 @@ export interface PlatformTiers {
   tiers: TierRow[];
 }
 
-// ── Swap ──────────────────────────────────────────────────────────────────────
-
-export interface SwapQuoteResponse {
-  algoAmount:   number;   // human-readable ALGO
-  microAlgo:    number;   // input microALGO
-  outputUsdc:   number;   // micro-USDC (6 decimals)
-  usdcAmount:   number;   // human-readable USDC
-  priceImpact:  number;   // 0–1 fraction
-  slippageBps:  number;
-  backend:      string;   // "mock-swap" | "tinyman-v2"
-  rateAlgoUsdc: number;   // $/ALGO rate used
-  timestamp:    string;
-}
-
-/**
- * Fetch a swap quote for the given ALGO amount (micro-units).
- * No auth required — read-only price data.
- */
-export async function getSwapQuote(microAlgo: number): Promise<SwapQuoteResponse> {
-  return api<SwapQuoteResponse>(`/swap/quote?microAlgo=${Math.floor(microAlgo)}`);
-}

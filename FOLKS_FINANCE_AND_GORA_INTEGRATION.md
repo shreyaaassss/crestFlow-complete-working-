@@ -8,25 +8,24 @@
 
 > [!IMPORTANT]
 > **Current Status (Testnet v2):** Yield is paid from a **pre-funded on-chain reserve** (`YIELD_BACKEND=reserve`).
-> The Folks Finance and Tinyman integrations are **stubs** — they exist in the codebase with full
-> implementation guides but are not activated. The swap UI widget has been **removed** from the
-> order creation flow because it was misleading: swap is an internal investment mechanism, not a
-> user payout preference.
+> The Folks Finance integration is a **stub** — it exists in the codebase with a full implementation guide
+> but is not activated. The Tinyman swap architecture has been **fully removed** — it is not needed because
+> Folks Finance's `fAlgo` lending pool accepts native ALGO directly (no ALGO→USDC conversion required).
 >
-> **Mainnet Investment Flow (Phase 2):**
+> **Mainnet Investment Flow (Phase 2 — non-custodial via smart contract delegation):**
 > ```
 > User locks ALGO in escrow
->    ↓  Orchestrator calls Tinyman v2 (SWAP_BACKEND=tinyman)
-> ALGO → USDC
->    ↓  Orchestrator deposits into Folks Finance ALGO/USDC pool (YIELD_BACKEND=folks-finance)
-> USDC earning ~3–5% APY from Folks Finance
->    ↓  At T-Bill maturity: orchestrator withdraws from Folks Finance
-> USDC (principal + real yield)
->    ↓  Orchestrator swaps back via Tinyman
-> ALGO → returned to seller
+>    ↓  CadenciaEscrow.delegateToFolksFinance() — new ABI method (mainnet Phase 2)
+>        orchestrator calls this in an atomic txn group with the Folks Finance deposit
+> ALGO deposited into Folks Finance fAlgo lending pool
+>    ↓  Earns real ALGO APY (~3–5%) during the lock period
+> ALGO (principal + yield) accrues in fAlgo position
+>    ↓  At T-Bill maturity: orchestrator calls CadenciaEscrow.reclaimFromFolksFinance()
+> ALGO + yield returned to escrow, then released to seller via tbill.redeem()
 > ```
-> To activate: set `YIELD_BACKEND=folks-finance` and `SWAP_BACKEND=tinyman` in production env
-> and implement the two stubs listed in Section 1.2 and Section 2.
+> To activate: implement `delegateToFolksFinance()` / `reclaimFromFolksFinance()` ABI methods
+> in the CadenciaEscrow contract, then set `YIELD_BACKEND=folks-finance` and implement
+> `orchestrator/src/services/yield-backend/folks-finance.ts`.
 
 ---
 
