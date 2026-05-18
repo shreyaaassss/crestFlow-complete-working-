@@ -24,7 +24,7 @@ export async function redeemExpiredOrders(): Promise<void> {
     const matured = await tbill.isMatured(orderId).catch(() => false);
     if (!matured) {
       const maturityTs = await tbill.getMaturity(orderId).catch(() => 0);
-      const currentTs  = await algorand.getCurrentBlockTimestamp();
+      const { timestamp: currentTs }  = await algorand.getCurrentRoundAndTimestamp();
       const remaining  = maturityTs - currentTs;
       if (remaining > 0)
         logger.info(`Order ${orderId}: matures in ${remaining}s (${Math.ceil(remaining / 60)}min)`);

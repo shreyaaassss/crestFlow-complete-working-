@@ -18,8 +18,7 @@ export async function investPendingOrders(): Promise<void> {
 
   logger.info(`Found ${eligible.length} eligible PENDING order(s) to invest`);
   
-  const currentRound = await algorand.getCurrentRound();
-  const currentTs = await algorand.getCurrentBlockTimestamp();
+  const { round: currentRound, timestamp: currentTs } = await algorand.getCurrentRoundAndTimestamp();
 
   for (const { orderId, order } of eligible) {
     await withRetry(async () => {

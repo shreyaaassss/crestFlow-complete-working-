@@ -49,16 +49,19 @@ function OrderDetailPage() {
         if (!active) return;
         setOrder(data);
         setErr(null);
-        if (data.lifecycle?.is_active) {
-          const interval =
-            data.status === "PENDING" ? 5000 :
-            data.status === "INVESTED" ? 5000 :
-            data.status === "REDEEMED" ? 5000 : 5000;
+        
+        // Poll as long as order isn't in a terminal state
+        // Don't rely on is_active — derive it from status directly
+        const terminalStatuses = ["COMPLETED", "CANCELLED", "DISPUTED"];
+        if (!terminalStatuses.includes(data.status)) {
+          const interval = data.status === "INVESTED" ? 10_000 : 5_000;
           timer = setTimeout(tick, interval);
         }
       } catch (e: any) {
         if (!active) return;
         setErr(e?.message ?? "Order fetch failed");
+        // keep retrying even on error, don't stop polling
+        timer = setTimeout(tick, 8_000);
       }
     };
     tick();
