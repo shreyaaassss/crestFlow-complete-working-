@@ -1,7 +1,7 @@
 /**
  * Cadencia Treasury - Backend API
  *
- * Base URL: http://localhost:3001
+ * Base URL: http://localhost:3002
  *
  * ── Auth ─────────────────────────────────────────────────────────────────────
  *  POST /auth/nonce          issue nonce for wallet address
@@ -27,6 +27,9 @@
  * ── Transactions ─────────────────────────────────────────────────────────────
  *  GET  /tx/:txid            transaction confirmation status + details
  *
+ * ── Swap ────────────────────────────────────────────────────────────────────
+ *  GET  /swap/quote            ALGO→USDC quote (no auth, mock on testnet)
+ *
  * ── Health ───────────────────────────────────────────────────────────────────
  *  GET  /health              server + network health check
  */
@@ -37,6 +40,7 @@ import { authRouter     } from "./routes/auth";
 import { ordersRouter   } from "./routes/orders";
 import { platformRouter } from "./routes/platform";
 import { accountRouter  } from "./routes/account";
+import { swapRouter     } from "./routes/swap";
 import { algodClient, ESCROW_APP_ID, TBILL_APP_ID, PORT, EXPLORER_BASE } from "./config";
 
 const app = express();
@@ -83,6 +87,7 @@ app.get("/health", async (_req, res) => {
         platform:    ["/platform/stats", "/platform/config", "/platform/tiers"],
         account:     ["/account/:address", "/account/:address/orders"],
         transaction: ["/tx/:txid"],
+        swap:        ["/swap/quote"],
       },
     });
   } catch (err: any) {
@@ -117,13 +122,14 @@ app.use("/auth",     authRouter);
 app.use("/orders",   ordersRouter);
 app.use("/platform", platformRouter);
 app.use("/account",  accountRouter);
+app.use("/swap",     swapRouter);
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({
     error:     "Not found",
     path:      req.path,
-    available: ["/health", "/auth/*", "/orders/*", "/platform/*", "/account/*", "/tx/*"],
+    available: ["/health", "/auth/*", "/orders/*", "/platform/*", "/account/*", "/tx/*", "/swap/*"],
   });
 });
 

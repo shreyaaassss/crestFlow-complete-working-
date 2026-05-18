@@ -109,7 +109,7 @@ main_after_if_else@2:
     assert
     txn ApplicationID
     assert
-    pushbytess 0x11b62447 0x826f991b 0xb82f2364 0x8aa2db08 0x14a121c6 0x6827b6e8 0xc51311d0 0x361f68c1 0xbe6bf527 0xff8a3c91 0xb90dfcb2 0xb3442082 0x24ab9f1b 0xf1301bdf 0x1a7603f1 0x0178f94b 0x1b529de8 // method "create_tbill_asas_short()void", method "create_tbill_asas_long()void", method "invest(pay,uint64,uint8)void", method "redeem(uint64)uint64", method "get_position(uint64)(uint64,uint8,uint64,uint64,uint8)", method "get_maturity(uint64)uint64", method "get_estimated_yield(uint64)uint64", method "get_stats()(uint64,uint64,uint64)", method "get_asa_ids()(uint64,uint64,uint64,uint64,uint64,uint64,uint64)", method "is_matured(uint64)bool", method "fund_reserve(pay)void", method "set_yield_rate(uint64)void", method "set_demo_mode(uint64,uint64)void", method "set_orchestrator(address)void", method "set_escrow(uint64)void", method "pause()void", method "unpause()void"
+    pushbytess 0x11b62447 0x826f991b 0x5dc6ed6a 0x8aa2db08 0x14a121c6 0x6827b6e8 0xc51311d0 0x361f68c1 0xbe6bf527 0xff8a3c91 0xb90dfcb2 0xb3442082 0x24ab9f1b 0xf1301bdf 0x1a7603f1 0x0178f94b 0x1b529de8 // method "create_tbill_asas_short()void", method "create_tbill_asas_long()void", method "invest(pay,uint64,uint8,uint64)void", method "redeem(uint64)uint64", method "get_position(uint64)(uint64,uint8,uint64,uint64,uint8)", method "get_maturity(uint64)uint64", method "get_estimated_yield(uint64)uint64", method "get_stats()(uint64,uint64,uint64)", method "get_asa_ids()(uint64,uint64,uint64,uint64,uint64,uint64,uint64)", method "is_matured(uint64)bool", method "fund_reserve(pay)void", method "set_yield_rate(uint64)void", method "set_demo_mode(uint64,uint64)void", method "set_orchestrator(address)void", method "set_escrow(uint64)void", method "pause()void", method "unpause()void"
     txna ApplicationArgs 0
     match create_tbill_asas_short create_tbill_asas_long invest redeem get_position get_maturity get_estimated_yield get_stats get_asa_ids is_matured fund_reserve set_yield_rate set_demo_mode set_orchestrator set_escrow pause unpause
     err
@@ -815,7 +815,14 @@ invest:
     intc_1 // 1
     ==
     assert // invalid number of bytes for arc4.uint8
-    // smart_contracts/cadencia_tbill/contract.py:215
+    txna ApplicationArgs 3
+    dup
+    cover 4
+    len
+    intc_2 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    // smart_contracts/cadencia_tbill/contract.py:221
     // assert Txn.sender == self.orchestrator, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -824,7 +831,7 @@ invest:
     assert // check self.orchestrator exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:216
+    // smart_contracts/cadencia_tbill/contract.py:222
     // assert self.paused == UInt64(0), "TBILL_PAUSED"
     intc_0 // 0
     bytec 10 // "paused"
@@ -832,21 +839,21 @@ invest:
     assert // check self.paused exists
     !
     assert // TBILL_PAUSED
-    // smart_contracts/cadencia_tbill/contract.py:217
+    // smart_contracts/cadencia_tbill/contract.py:223
     // assert pay_txn.receiver == Global.current_application_address, "INVALID_PAYMENT"
     dig 2
     gtxns Receiver
     global CurrentApplicationAddress
     ==
     assert // INVALID_PAYMENT
-    // smart_contracts/cadencia_tbill/contract.py:218
+    // smart_contracts/cadencia_tbill/contract.py:224
     // assert pay_txn.amount > UInt64(0), "ZERO_AMOUNT"
     uncover 2
     gtxns Amount
     dup
     cover 3
     assert // ZERO_AMOUNT
-    // smart_contracts/cadencia_tbill/contract.py:219
+    // smart_contracts/cadencia_tbill/contract.py:225
     // assert order_id not in self.positions, "ALREADY_INVESTED"
     bytec 4 // "positions"
     uncover 2
@@ -857,15 +864,15 @@ invest:
     bury 1
     !
     assert // ALREADY_INVESTED
-    // smart_contracts/cadencia_tbill/contract.py:221
+    // smart_contracts/cadencia_tbill/contract.py:227
     // days = tbill_type.native
     btoi
     dup
-    // smart_contracts/cadencia_tbill/contract.py:223
+    // smart_contracts/cadencia_tbill/contract.py:229
     // days == UInt64(TBILL_1D)
     intc_1 // 1
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -874,12 +881,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:224
+    // smart_contracts/cadencia_tbill/contract.py:230
     // or days == UInt64(TBILL_3D)
     dup
     intc_3 // 3
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -888,12 +895,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:225
+    // smart_contracts/cadencia_tbill/contract.py:231
     // or days == UInt64(TBILL_7D)
     dup
     pushint 7
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -902,12 +909,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:226
+    // smart_contracts/cadencia_tbill/contract.py:232
     // or days == UInt64(TBILL_14D)
     dup
     pushint 14
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -916,12 +923,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:227
+    // smart_contracts/cadencia_tbill/contract.py:233
     // or days == UInt64(TBILL_30D)
     dup
     pushint 30
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -930,12 +937,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:228
+    // smart_contracts/cadencia_tbill/contract.py:234
     // or days == UInt64(TBILL_60D)
     dup
     pushint 60
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -944,12 +951,12 @@ invest:
     // or days == UInt64(TBILL_60D)
     // or days == UInt64(TBILL_90D)
     bnz invest_bool_true@8
-    // smart_contracts/cadencia_tbill/contract.py:229
+    // smart_contracts/cadencia_tbill/contract.py:235
     // or days == UInt64(TBILL_90D)
     dup
     pushint 90
     ==
-    // smart_contracts/cadencia_tbill/contract.py:223-229
+    // smart_contracts/cadencia_tbill/contract.py:229-235
     // days == UInt64(TBILL_1D)
     // or days == UInt64(TBILL_3D)
     // or days == UInt64(TBILL_7D)
@@ -963,7 +970,7 @@ invest_bool_true@8:
     intc_1 // 1
 
 invest_bool_merge@10:
-    // smart_contracts/cadencia_tbill/contract.py:222-230
+    // smart_contracts/cadencia_tbill/contract.py:228-236
     // assert (
     //     days == UInt64(TBILL_1D)
     //     or days == UInt64(TBILL_3D)
@@ -974,7 +981,14 @@ invest_bool_merge@10:
     //     or days == UInt64(TBILL_90D)
     // ), "INVALID_TYPE"
     assert // INVALID_TYPE
-    // smart_contracts/cadencia_tbill/contract.py:378
+    // smart_contracts/cadencia_tbill/contract.py:238-241
+    // # Use the escrow order's creation timestamp so the maturity period
+    // # starts from when the user placed the order, not when the orchestrator
+    // # happened to pick it up.
+    // maturity = self._calc_maturity_from(order_created_at.native, days)
+    dig 3
+    btoi
+    // smart_contracts/cadencia_tbill/contract.py:396
     // if self.demo_mode == UInt64(1):
     intc_0 // 0
     bytec 13 // "demo_mode"
@@ -983,11 +997,10 @@ invest_bool_merge@10:
     intc_1 // 1
     ==
     bz invest_else_body@13
-    // smart_contracts/cadencia_tbill/contract.py:379-381
+    // smart_contracts/cadencia_tbill/contract.py:397-399
     // # Demo: each day is demo_multiplier seconds
     // # e.g. 30D * 60s = 1800s = 30 minutes
-    // return Global.latest_timestamp + (days * self.demo_multiplier)
-    global LatestTimestamp
+    // return base_timestamp + (days * self.demo_multiplier)
     intc_0 // 0
     bytec 14 // "demo_multiplier"
     app_global_get_ex
@@ -996,51 +1009,47 @@ invest_bool_merge@10:
     *
     +
 
-invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc_maturity@14:
-    // smart_contracts/cadencia_tbill/contract.py:235
+invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc_maturity_from@14:
+    // smart_contracts/cadencia_tbill/contract.py:244
     // principal=arc4.UInt64(pay_txn.amount),
     dig 3
     dup
     itob
-    // smart_contracts/cadencia_tbill/contract.py:237
+    // smart_contracts/cadencia_tbill/contract.py:246
     // maturity_timestamp=arc4.UInt64(maturity),
     uncover 2
     itob
-    // smart_contracts/cadencia_tbill/contract.py:238
-    // invested_at=arc4.UInt64(Global.latest_timestamp),
-    global LatestTimestamp
-    itob
-    // smart_contracts/cadencia_tbill/contract.py:234-240
+    // smart_contracts/cadencia_tbill/contract.py:243-249
     // self.positions[order_id] = TBillPosition(
     //     principal=arc4.UInt64(pay_txn.amount),
     //     tbill_type=tbill_type,
     //     maturity_timestamp=arc4.UInt64(maturity),
-    //     invested_at=arc4.UInt64(Global.latest_timestamp),
+    //     invested_at=order_created_at,
     //     status=arc4.UInt8(POS_ACTIVE),
     // )
-    uncover 2
+    swap
     dig 7
-    concat
-    uncover 2
     concat
     swap
     concat
-    // smart_contracts/cadencia_tbill/contract.py:239
+    dig 5
+    concat
+    // smart_contracts/cadencia_tbill/contract.py:248
     // status=arc4.UInt8(POS_ACTIVE),
     bytec 11 // 0x00
-    // smart_contracts/cadencia_tbill/contract.py:234-240
+    // smart_contracts/cadencia_tbill/contract.py:243-249
     // self.positions[order_id] = TBillPosition(
     //     principal=arc4.UInt64(pay_txn.amount),
     //     tbill_type=tbill_type,
     //     maturity_timestamp=arc4.UInt64(maturity),
-    //     invested_at=arc4.UInt64(Global.latest_timestamp),
+    //     invested_at=order_created_at,
     //     status=arc4.UInt8(POS_ACTIVE),
     // )
     concat
     dig 3
     swap
     box_put
-    // smart_contracts/cadencia_tbill/contract.py:242
+    // smart_contracts/cadencia_tbill/contract.py:251
     // self.total_invested += pay_txn.amount
     intc_0 // 0
     bytec_2 // "total_invested"
@@ -1050,7 +1059,7 @@ invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc
     bytec_2 // "total_invested"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:243
+    // smart_contracts/cadencia_tbill/contract.py:252
     // self.active_positions += UInt64(1)
     intc_0 // 0
     bytec_3 // "active_positions"
@@ -1067,17 +1076,19 @@ invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc
     return
 
 invest_else_body@13:
-    // smart_contracts/cadencia_tbill/contract.py:383-384
+    // smart_contracts/cadencia_tbill/contract.py:401-402
     // # Production: days * 86400 seconds
-    // return Global.latest_timestamp + (days * UInt64(86400))
-    global LatestTimestamp
+    // return base_timestamp + (days * UInt64(86400))
     dig 1
     pushint 86400
     *
     +
-    // smart_contracts/cadencia_tbill/contract.py:232
-    // maturity = self._calc_maturity(days)
-    b invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc_maturity@14
+    // smart_contracts/cadencia_tbill/contract.py:238-241
+    // # Use the escrow order's creation timestamp so the maturity period
+    // # starts from when the user placed the order, not when the orchestrator
+    // # happened to pick it up.
+    // maturity = self._calc_maturity_from(order_created_at.native, days)
+    b invest_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc_maturity_from@14
 
 invest_bool_false@9:
     intc_0 // 0
@@ -1086,7 +1097,7 @@ invest_bool_false@9:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.redeem[routing]() -> void:
 redeem:
-    // smart_contracts/cadencia_tbill/contract.py:247
+    // smart_contracts/cadencia_tbill/contract.py:256
     // @arc4.abimethod()
     txna ApplicationArgs 1
     dup
@@ -1094,7 +1105,7 @@ redeem:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:253
+    // smart_contracts/cadencia_tbill/contract.py:262
     // assert Txn.sender == self.orchestrator, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1103,7 +1114,7 @@ redeem:
     assert // check self.orchestrator exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:254
+    // smart_contracts/cadencia_tbill/contract.py:263
     // assert order_id in self.positions, "POSITION_NOT_FOUND"
     bytec 4 // "positions"
     swap
@@ -1112,19 +1123,19 @@ redeem:
     box_len
     bury 1
     assert // POSITION_NOT_FOUND
-    // smart_contracts/cadencia_tbill/contract.py:256
+    // smart_contracts/cadencia_tbill/contract.py:265
     // pos = self.positions[order_id].copy()
     dup
     box_get
     pop
-    // smart_contracts/cadencia_tbill/contract.py:257
+    // smart_contracts/cadencia_tbill/contract.py:266
     // assert pos.status == arc4.UInt8(POS_ACTIVE), "ALREADY_REDEEMED"
     dup
     extract 25 1
     bytec 11 // 0x00
     b==
     assert // ALREADY_REDEEMED
-    // smart_contracts/cadencia_tbill/contract.py:258
+    // smart_contracts/cadencia_tbill/contract.py:267
     // assert Global.latest_timestamp >= pos.maturity_timestamp.native, "NOT_MATURED"
     global LatestTimestamp
     dig 1
@@ -1135,63 +1146,63 @@ redeem:
     uncover 2
     <=
     assert // NOT_MATURED
-    // smart_contracts/cadencia_tbill/contract.py:260
+    // smart_contracts/cadencia_tbill/contract.py:269
     // principal = pos.principal.native
     dig 1
     extract 0 8
     dig 2
     intc_0 // 0
     extract_uint64
-    // smart_contracts/cadencia_tbill/contract.py:261
+    // smart_contracts/cadencia_tbill/contract.py:270
     // days = pos.tbill_type.native
     dig 3
     extract 8 1
     dig 4
     intc_2 // 8
     getbyte
-    // smart_contracts/cadencia_tbill/contract.py:262
+    // smart_contracts/cadencia_tbill/contract.py:271
     // yield_amount = self._calc_yield(principal, days)
     dig 2
     swap
     callsub _calc_yield
-    // smart_contracts/cadencia_tbill/contract.py:263
+    // smart_contracts/cadencia_tbill/contract.py:272
     // total = principal + yield_amount
     dig 2
     dig 1
     +
-    // smart_contracts/cadencia_tbill/contract.py:265-269
+    // smart_contracts/cadencia_tbill/contract.py:274-278
     // itxn.Payment(
     //     receiver=Txn.sender,
     //     amount=total,
     //     fee=UInt64(0),
     // ).submit()
     itxn_begin
-    // smart_contracts/cadencia_tbill/contract.py:266
+    // smart_contracts/cadencia_tbill/contract.py:275
     // receiver=Txn.sender,
     txn Sender
     dig 1
     itxn_field Amount
     itxn_field Receiver
-    // smart_contracts/cadencia_tbill/contract.py:265
+    // smart_contracts/cadencia_tbill/contract.py:274
     // itxn.Payment(
     intc_1 // pay
     itxn_field TypeEnum
-    // smart_contracts/cadencia_tbill/contract.py:268
+    // smart_contracts/cadencia_tbill/contract.py:277
     // fee=UInt64(0),
     intc_0 // 0
     itxn_field Fee
-    // smart_contracts/cadencia_tbill/contract.py:265-269
+    // smart_contracts/cadencia_tbill/contract.py:274-278
     // itxn.Payment(
     //     receiver=Txn.sender,
     //     amount=total,
     //     fee=UInt64(0),
     // ).submit()
     itxn_submit
-    // smart_contracts/cadencia_tbill/contract.py:275
+    // smart_contracts/cadencia_tbill/contract.py:284
     // invested_at=pos.invested_at,
     uncover 6
     extract 17 8
-    // smart_contracts/cadencia_tbill/contract.py:271-277
+    // smart_contracts/cadencia_tbill/contract.py:280-286
     // self.positions[order_id] = TBillPosition(
     //     principal=pos.principal,
     //     tbill_type=pos.tbill_type,
@@ -1206,10 +1217,10 @@ redeem:
     concat
     swap
     concat
-    // smart_contracts/cadencia_tbill/contract.py:276
+    // smart_contracts/cadencia_tbill/contract.py:285
     // status=arc4.UInt8(POS_REDEEMED),
     pushbytes 0x01
-    // smart_contracts/cadencia_tbill/contract.py:271-277
+    // smart_contracts/cadencia_tbill/contract.py:280-286
     // self.positions[order_id] = TBillPosition(
     //     principal=pos.principal,
     //     tbill_type=pos.tbill_type,
@@ -1221,7 +1232,7 @@ redeem:
     uncover 4
     swap
     box_put
-    // smart_contracts/cadencia_tbill/contract.py:279
+    // smart_contracts/cadencia_tbill/contract.py:288
     // self.total_invested -= principal
     intc_0 // 0
     bytec_2 // "total_invested"
@@ -1232,7 +1243,7 @@ redeem:
     bytec_2 // "total_invested"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:280
+    // smart_contracts/cadencia_tbill/contract.py:289
     // self.total_yield_paid += yield_amount
     intc_0 // 0
     bytec 9 // "total_yield_paid"
@@ -1243,7 +1254,7 @@ redeem:
     bytec 9 // "total_yield_paid"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:281
+    // smart_contracts/cadencia_tbill/contract.py:290
     // self.active_positions -= UInt64(1)
     intc_0 // 0
     bytec_3 // "active_positions"
@@ -1254,10 +1265,10 @@ redeem:
     bytec_3 // "active_positions"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:283
+    // smart_contracts/cadencia_tbill/contract.py:292
     // return arc4.UInt64(total)
     itob
-    // smart_contracts/cadencia_tbill/contract.py:247
+    // smart_contracts/cadencia_tbill/contract.py:256
     // @arc4.abimethod()
     bytec_1 // 0x151f7c75
     swap
@@ -1269,7 +1280,7 @@ redeem:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_position[routing]() -> void:
 get_position:
-    // smart_contracts/cadencia_tbill/contract.py:287
+    // smart_contracts/cadencia_tbill/contract.py:296
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1277,7 +1288,7 @@ get_position:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:289
+    // smart_contracts/cadencia_tbill/contract.py:298
     // assert order_id in self.positions, "POSITION_NOT_FOUND"
     bytec 4 // "positions"
     swap
@@ -1286,11 +1297,11 @@ get_position:
     box_len
     bury 1
     assert // POSITION_NOT_FOUND
-    // smart_contracts/cadencia_tbill/contract.py:290
+    // smart_contracts/cadencia_tbill/contract.py:299
     // return self.positions[order_id].copy()
     box_get
     pop
-    // smart_contracts/cadencia_tbill/contract.py:287
+    // smart_contracts/cadencia_tbill/contract.py:296
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1302,7 +1313,7 @@ get_position:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_maturity[routing]() -> void:
 get_maturity:
-    // smart_contracts/cadencia_tbill/contract.py:292
+    // smart_contracts/cadencia_tbill/contract.py:301
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1310,7 +1321,7 @@ get_maturity:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:294
+    // smart_contracts/cadencia_tbill/contract.py:303
     // assert order_id in self.positions, "POSITION_NOT_FOUND"
     bytec 4 // "positions"
     swap
@@ -1319,14 +1330,14 @@ get_maturity:
     box_len
     bury 1
     assert // POSITION_NOT_FOUND
-    // smart_contracts/cadencia_tbill/contract.py:295
+    // smart_contracts/cadencia_tbill/contract.py:304
     // pos = self.positions[order_id].copy()
     box_get
     pop
-    // smart_contracts/cadencia_tbill/contract.py:296
+    // smart_contracts/cadencia_tbill/contract.py:305
     // return pos.maturity_timestamp
     extract 9 8
-    // smart_contracts/cadencia_tbill/contract.py:292
+    // smart_contracts/cadencia_tbill/contract.py:301
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1339,7 +1350,7 @@ get_maturity:
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_estimated_yield[routing]() -> void:
 get_estimated_yield:
     intc_0 // 0
-    // smart_contracts/cadencia_tbill/contract.py:298
+    // smart_contracts/cadencia_tbill/contract.py:307
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1347,7 +1358,7 @@ get_estimated_yield:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:300
+    // smart_contracts/cadencia_tbill/contract.py:309
     // if order_id not in self.positions:
     bytec 4 // "positions"
     swap
@@ -1356,12 +1367,12 @@ get_estimated_yield:
     box_len
     bury 1
     bnz get_estimated_yield_after_if_else@3
-    // smart_contracts/cadencia_tbill/contract.py:301
+    // smart_contracts/cadencia_tbill/contract.py:310
     // return arc4.UInt64(0)
     bytec 20 // 0x0000000000000000
 
 get_estimated_yield_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_estimated_yield@6:
-    // smart_contracts/cadencia_tbill/contract.py:298
+    // smart_contracts/cadencia_tbill/contract.py:307
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1371,7 +1382,7 @@ get_estimated_yield_after_inlined_smart_contracts.cadencia_tbill.contract.Cadenc
     return
 
 get_estimated_yield_after_if_else@3:
-    // smart_contracts/cadencia_tbill/contract.py:302
+    // smart_contracts/cadencia_tbill/contract.py:311
     // pos = self.positions[order_id].copy()
     dup
     box_get
@@ -1380,21 +1391,21 @@ get_estimated_yield_after_if_else@3:
     cover 2
     bury 4
     assert // check self.positions entry exists
-    // smart_contracts/cadencia_tbill/contract.py:303
+    // smart_contracts/cadencia_tbill/contract.py:312
     // if pos.status != arc4.UInt8(POS_ACTIVE):
     extract 25 1
     bytec 11 // 0x00
     b!=
     bz get_estimated_yield_after_if_else@5
-    // smart_contracts/cadencia_tbill/contract.py:304
+    // smart_contracts/cadencia_tbill/contract.py:313
     // return arc4.UInt64(0)
     bytec 20 // 0x0000000000000000
-    // smart_contracts/cadencia_tbill/contract.py:298
+    // smart_contracts/cadencia_tbill/contract.py:307
     // @arc4.abimethod(readonly=True)
     b get_estimated_yield_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_estimated_yield@6
 
 get_estimated_yield_after_if_else@5:
-    // smart_contracts/cadencia_tbill/contract.py:305
+    // smart_contracts/cadencia_tbill/contract.py:314
     // return arc4.UInt64(self._calc_yield(pos.principal.native, pos.tbill_type.native))
     dig 1
     dup
@@ -1405,35 +1416,35 @@ get_estimated_yield_after_if_else@5:
     getbyte
     callsub _calc_yield
     itob
-    // smart_contracts/cadencia_tbill/contract.py:298
+    // smart_contracts/cadencia_tbill/contract.py:307
     // @arc4.abimethod(readonly=True)
     b get_estimated_yield_after_inlined_smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_estimated_yield@6
 
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_stats[routing]() -> void:
 get_stats:
-    // smart_contracts/cadencia_tbill/contract.py:310
+    // smart_contracts/cadencia_tbill/contract.py:319
     // total_invested=arc4.UInt64(self.total_invested),
     intc_0 // 0
     bytec_2 // "total_invested"
     app_global_get_ex
     assert // check self.total_invested exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:311
+    // smart_contracts/cadencia_tbill/contract.py:320
     // total_yield_paid=arc4.UInt64(self.total_yield_paid),
     intc_0 // 0
     bytec 9 // "total_yield_paid"
     app_global_get_ex
     assert // check self.total_yield_paid exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:312
+    // smart_contracts/cadencia_tbill/contract.py:321
     // active_positions=arc4.UInt64(self.active_positions),
     intc_0 // 0
     bytec_3 // "active_positions"
     app_global_get_ex
     assert // check self.active_positions exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:309-313
+    // smart_contracts/cadencia_tbill/contract.py:318-322
     // return TBillStats(
     //     total_invested=arc4.UInt64(self.total_invested),
     //     total_yield_paid=arc4.UInt64(self.total_yield_paid),
@@ -1443,7 +1454,7 @@ get_stats:
     concat
     swap
     concat
-    // smart_contracts/cadencia_tbill/contract.py:307
+    // smart_contracts/cadencia_tbill/contract.py:316
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1455,56 +1466,56 @@ get_stats:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.get_asa_ids[routing]() -> void:
 get_asa_ids:
-    // smart_contracts/cadencia_tbill/contract.py:318
+    // smart_contracts/cadencia_tbill/contract.py:327
     // tbill_1d=arc4.UInt64(self.tbill_1d_asa),
     intc_0 // 0
     bytec 6 // "tbill_1d_asa"
     app_global_get_ex
     assert // check self.tbill_1d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:319
+    // smart_contracts/cadencia_tbill/contract.py:328
     // tbill_3d=arc4.UInt64(self.tbill_3d_asa),
     intc_0 // 0
     bytec 15 // "tbill_3d_asa"
     app_global_get_ex
     assert // check self.tbill_3d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:320
+    // smart_contracts/cadencia_tbill/contract.py:329
     // tbill_7d=arc4.UInt64(self.tbill_7d_asa),
     intc_0 // 0
     bytec 16 // "tbill_7d_asa"
     app_global_get_ex
     assert // check self.tbill_7d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:321
+    // smart_contracts/cadencia_tbill/contract.py:330
     // tbill_14d=arc4.UInt64(self.tbill_14d_asa),
     intc_0 // 0
     bytec 7 // "tbill_14d_asa"
     app_global_get_ex
     assert // check self.tbill_14d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:322
+    // smart_contracts/cadencia_tbill/contract.py:331
     // tbill_30d=arc4.UInt64(self.tbill_30d_asa),
     intc_0 // 0
     bytec 8 // "tbill_30d_asa"
     app_global_get_ex
     assert // check self.tbill_30d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:323
+    // smart_contracts/cadencia_tbill/contract.py:332
     // tbill_60d=arc4.UInt64(self.tbill_60d_asa),
     intc_0 // 0
     bytec 17 // "tbill_60d_asa"
     app_global_get_ex
     assert // check self.tbill_60d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:324
+    // smart_contracts/cadencia_tbill/contract.py:333
     // tbill_90d=arc4.UInt64(self.tbill_90d_asa),
     intc_0 // 0
     bytec 18 // "tbill_90d_asa"
     app_global_get_ex
     assert // check self.tbill_90d_asa exists
     itob
-    // smart_contracts/cadencia_tbill/contract.py:317-325
+    // smart_contracts/cadencia_tbill/contract.py:326-334
     // return AsaIds(
     //     tbill_1d=arc4.UInt64(self.tbill_1d_asa),
     //     tbill_3d=arc4.UInt64(self.tbill_3d_asa),
@@ -1527,7 +1538,7 @@ get_asa_ids:
     concat
     swap
     concat
-    // smart_contracts/cadencia_tbill/contract.py:315
+    // smart_contracts/cadencia_tbill/contract.py:324
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1539,7 +1550,7 @@ get_asa_ids:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.is_matured[routing]() -> void:
 is_matured:
-    // smart_contracts/cadencia_tbill/contract.py:327
+    // smart_contracts/cadencia_tbill/contract.py:336
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -1547,7 +1558,7 @@ is_matured:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:329
+    // smart_contracts/cadencia_tbill/contract.py:338
     // assert order_id in self.positions, "POSITION_NOT_FOUND"
     bytec 4 // "positions"
     swap
@@ -1556,11 +1567,11 @@ is_matured:
     box_len
     bury 1
     assert // POSITION_NOT_FOUND
-    // smart_contracts/cadencia_tbill/contract.py:330
+    // smart_contracts/cadencia_tbill/contract.py:339
     // pos = self.positions[order_id].copy()
     box_get
     pop
-    // smart_contracts/cadencia_tbill/contract.py:331
+    // smart_contracts/cadencia_tbill/contract.py:340
     // return arc4.Bool(Global.latest_timestamp >= pos.maturity_timestamp.native)
     global LatestTimestamp
     swap
@@ -1571,7 +1582,7 @@ is_matured:
     intc_0 // 0
     uncover 2
     setbit
-    // smart_contracts/cadencia_tbill/contract.py:327
+    // smart_contracts/cadencia_tbill/contract.py:336
     // @arc4.abimethod(readonly=True)
     bytec_1 // 0x151f7c75
     swap
@@ -1583,7 +1594,7 @@ is_matured:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.fund_reserve[routing]() -> void:
 fund_reserve:
-    // smart_contracts/cadencia_tbill/contract.py:335
+    // smart_contracts/cadencia_tbill/contract.py:344
     // @arc4.abimethod()
     txn GroupIndex
     intc_1 // 1
@@ -1593,7 +1604,7 @@ fund_reserve:
     intc_1 // pay
     ==
     assert // transaction type is pay
-    // smart_contracts/cadencia_tbill/contract.py:338
+    // smart_contracts/cadencia_tbill/contract.py:347
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1602,13 +1613,13 @@ fund_reserve:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:339
+    // smart_contracts/cadencia_tbill/contract.py:348
     // assert pay_txn.receiver == Global.current_application_address, "INVALID_PAYMENT"
     gtxns Receiver
     global CurrentApplicationAddress
     ==
     assert // INVALID_PAYMENT
-    // smart_contracts/cadencia_tbill/contract.py:335
+    // smart_contracts/cadencia_tbill/contract.py:344
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1616,7 +1627,7 @@ fund_reserve:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.set_yield_rate[routing]() -> void:
 set_yield_rate:
-    // smart_contracts/cadencia_tbill/contract.py:341
+    // smart_contracts/cadencia_tbill/contract.py:350
     // @arc4.abimethod()
     txna ApplicationArgs 1
     dup
@@ -1624,7 +1635,7 @@ set_yield_rate:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:343
+    // smart_contracts/cadencia_tbill/contract.py:352
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1633,13 +1644,13 @@ set_yield_rate:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:344
+    // smart_contracts/cadencia_tbill/contract.py:353
     // self.yield_rate_bps = rate_bps.native
     btoi
     bytec 12 // "yield_rate_bps"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:341
+    // smart_contracts/cadencia_tbill/contract.py:350
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1647,7 +1658,7 @@ set_yield_rate:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.set_demo_mode[routing]() -> void:
 set_demo_mode:
-    // smart_contracts/cadencia_tbill/contract.py:346
+    // smart_contracts/cadencia_tbill/contract.py:355
     // @arc4.abimethod()
     txna ApplicationArgs 1
     dup
@@ -1661,7 +1672,7 @@ set_demo_mode:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:349
+    // smart_contracts/cadencia_tbill/contract.py:358
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1670,20 +1681,20 @@ set_demo_mode:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:350
+    // smart_contracts/cadencia_tbill/contract.py:359
     // self.demo_mode = enabled.native
     swap
     btoi
     bytec 13 // "demo_mode"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:351
+    // smart_contracts/cadencia_tbill/contract.py:360
     // self.demo_multiplier = multiplier.native
     btoi
     bytec 14 // "demo_multiplier"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:346
+    // smart_contracts/cadencia_tbill/contract.py:355
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1691,7 +1702,7 @@ set_demo_mode:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.set_orchestrator[routing]() -> void:
 set_orchestrator:
-    // smart_contracts/cadencia_tbill/contract.py:353
+    // smart_contracts/cadencia_tbill/contract.py:362
     // @arc4.abimethod()
     txna ApplicationArgs 1
     dup
@@ -1699,7 +1710,7 @@ set_orchestrator:
     pushint 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/cadencia_tbill/contract.py:355
+    // smart_contracts/cadencia_tbill/contract.py:364
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1708,12 +1719,12 @@ set_orchestrator:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:356
+    // smart_contracts/cadencia_tbill/contract.py:365
     // self.orchestrator = address.native
     bytec 5 // "orchestrator"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:353
+    // smart_contracts/cadencia_tbill/contract.py:362
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1721,7 +1732,7 @@ set_orchestrator:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.set_escrow[routing]() -> void:
 set_escrow:
-    // smart_contracts/cadencia_tbill/contract.py:358
+    // smart_contracts/cadencia_tbill/contract.py:367
     // @arc4.abimethod()
     txna ApplicationArgs 1
     dup
@@ -1729,7 +1740,7 @@ set_escrow:
     intc_2 // 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/cadencia_tbill/contract.py:360
+    // smart_contracts/cadencia_tbill/contract.py:369
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1738,13 +1749,13 @@ set_escrow:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:361
+    // smart_contracts/cadencia_tbill/contract.py:370
     // self.escrow_app_id = app_id.native
     btoi
     bytec 19 // "escrow_app_id"
     swap
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:358
+    // smart_contracts/cadencia_tbill/contract.py:367
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1752,7 +1763,7 @@ set_escrow:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.pause[routing]() -> void:
 pause:
-    // smart_contracts/cadencia_tbill/contract.py:365
+    // smart_contracts/cadencia_tbill/contract.py:374
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1761,12 +1772,12 @@ pause:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:366
+    // smart_contracts/cadencia_tbill/contract.py:375
     // self.paused = UInt64(1)
     bytec 10 // "paused"
     intc_1 // 1
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:363
+    // smart_contracts/cadencia_tbill/contract.py:372
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1774,7 +1785,7 @@ pause:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill.unpause[routing]() -> void:
 unpause:
-    // smart_contracts/cadencia_tbill/contract.py:370
+    // smart_contracts/cadencia_tbill/contract.py:379
     // assert Txn.sender == self.admin, "UNAUTHORIZED"
     txn Sender
     intc_0 // 0
@@ -1783,12 +1794,12 @@ unpause:
     assert // check self.admin exists
     ==
     assert // UNAUTHORIZED
-    // smart_contracts/cadencia_tbill/contract.py:371
+    // smart_contracts/cadencia_tbill/contract.py:380
     // self.paused = UInt64(0)
     bytec 10 // "paused"
     intc_0 // 0
     app_global_put
-    // smart_contracts/cadencia_tbill/contract.py:368
+    // smart_contracts/cadencia_tbill/contract.py:377
     // @arc4.abimethod()
     intc_1 // 1
     return
@@ -1796,11 +1807,11 @@ unpause:
 
 // smart_contracts.cadencia_tbill.contract.CadenciaTBill._calc_yield(principal: uint64, days: uint64) -> uint64:
 _calc_yield:
-    // smart_contracts/cadencia_tbill/contract.py:386-387
+    // smart_contracts/cadencia_tbill/contract.py:404-405
     // @subroutine
     // def _calc_yield(self, principal: UInt64, days: UInt64) -> UInt64:
     proto 2 1
-    // smart_contracts/cadencia_tbill/contract.py:392
+    // smart_contracts/cadencia_tbill/contract.py:410
     // numerator = principal * self.yield_rate_bps * days
     intc_0 // 0
     bytec 12 // "yield_rate_bps"
@@ -1811,27 +1822,27 @@ _calc_yield:
     frame_dig -1
     *
     dup
-    // smart_contracts/cadencia_tbill/contract.py:393
+    // smart_contracts/cadencia_tbill/contract.py:411
     // denominator = UInt64(3_650_000)
     intc 5 // 3650000
-    // smart_contracts/cadencia_tbill/contract.py:394
+    // smart_contracts/cadencia_tbill/contract.py:412
     // if numerator < denominator:
     <
     bz _calc_yield_after_if_else@2
-    // smart_contracts/cadencia_tbill/contract.py:395
+    // smart_contracts/cadencia_tbill/contract.py:413
     // return UInt64(0)
     intc_0 // 0
     swap
     retsub
 
 _calc_yield_after_if_else@2:
-    // smart_contracts/cadencia_tbill/contract.py:396
+    // smart_contracts/cadencia_tbill/contract.py:414
     // return numerator // denominator
     frame_dig 0
-    // smart_contracts/cadencia_tbill/contract.py:393
+    // smart_contracts/cadencia_tbill/contract.py:411
     // denominator = UInt64(3_650_000)
     intc 5 // 3650000
-    // smart_contracts/cadencia_tbill/contract.py:396
+    // smart_contracts/cadencia_tbill/contract.py:414
     // return numerator // denominator
     /
     swap

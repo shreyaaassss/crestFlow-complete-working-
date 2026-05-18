@@ -49,18 +49,22 @@ export function tbillLabel(tbillType: TBillType): string {
 
 /**
  * Invest ALGO into a T-bill position.
+ * orderCreatedAt: Unix timestamp of the escrow order creation (from OrderRecord.createdAt).
+ * Passed to the contract so maturity is anchored to order creation, not investment time.
+ * (Issue 2 fix — 2026-05-18)
  */
 export async function invest(
   orderId: number,
   amountMicroAlgo: number,
-  tbillType: TBillType
+  tbillType: TBillType,
+  orderCreatedAt: number,
 ): Promise<void> {
   await algorand.callABIWithPayment(
     TBILL_APP_ID,
-    "invest(pay,uint64,uint8)void",
+    "invest(pay,uint64,uint8,uint64)void",
     amountMicroAlgo,
     TBILL_APP_ADDR,
-    [orderId, tbillType],
+    [orderId, tbillType, orderCreatedAt],
     [positionBox(orderId)]
   );
   logger.info(

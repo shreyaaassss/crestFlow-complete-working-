@@ -43,7 +43,8 @@ from algosdk.v2client import algod
 PROJECT_ROOT = Path(__file__).parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
-BASE_URL       = os.getenv("BACKEND_URL", "http://localhost:3001")
+BACKEND_PORT   = os.getenv("BACKEND_PORT", "3002")
+BASE_URL       = os.getenv("BACKEND_URL", f"http://localhost:{BACKEND_PORT}")
 ALGOD_SERVER   = os.getenv("ALGOD_SERVER", "https://testnet-api.algonode.cloud")
 ALGOD_PORT     = os.getenv("ALGOD_PORT", "443")
 ALGOD_TOKEN    = os.getenv("ALGOD_TOKEN", "")

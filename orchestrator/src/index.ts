@@ -53,12 +53,20 @@ async function main(): Promise<void> {
 
   while (true) {
     cycleCount++;
+    const cycleStart = Date.now();
     try {
       await runCycle(cycleCount);
     } catch (err: any) {
       logger.error(`Cycle ${cycleCount} error: ${err.message}`);
     }
-    await sleep(POLL_INTERVAL_MS);
+    // Fixed-interval scheduling: subtract cycle execution time from sleep so
+    // the effective poll interval is always POLL_INTERVAL_MS, not
+    // (cycleTime + POLL_INTERVAL_MS).  If the cycle itself exceeds the interval
+    // we skip sleep entirely and start the next cycle immediately.
+    const elapsed   = Date.now() - cycleStart;
+    const remaining = Math.max(0, POLL_INTERVAL_MS - elapsed);
+    logger.info(`Cycle ${cycleCount} took ${elapsed}ms — next poll in ${remaining}ms`);
+    await sleep(remaining);
   }
 }
 

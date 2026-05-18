@@ -9,7 +9,7 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
 export default defineConfig({
-  // Disable Cloudflare plugin so the build targets Node.js (Vercel/Railway compatible).
+  // Disable Cloudflare plugin so the build targets Node.js (AWS ECS compatible).
   cloudflare: false,
   tanstackStart: {
     server: { entry: "server" },

@@ -210,7 +210,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
   const value = useMemo<AdminCtx>(
     () => ({
-      isAdmin: !!session && (!adminEmail || session.user?.email === adminEmail),
+      // Fail-closed: if VITE_ADMIN_EMAIL env var is absent, nobody is admin.
+      // Previously `!adminEmail` was true when the var was missing, granting
+      // admin access to every logged-in user (Issue 3 audit finding).
+      isAdmin: !!session && !!adminEmail && session.user?.email === adminEmail,
       session,
       adminToken: session?.access_token ?? null,
       loading,

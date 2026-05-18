@@ -74,3 +74,10 @@ export const POLL_INTERVAL_MS  = parseInt(optionalEnv("POLL_INTERVAL_MS", "30000
 export const MIN_ORDER_AMOUNT  = parseInt(optionalEnv("MIN_ORDER_AMOUNT_MICROALGO", "5000000"));
 export const PLATFORM_WALLET   = requireEnv("PLATFORM_WALLET_ADDRESS");
 
+// ── Swap Backend (Phase 5: ALGO → USDC via Tinyman v2) ────────────────────────
+// SWAP_BACKEND=mock     → MockSwapService    (testnet default, no real swaps)
+// SWAP_BACKEND=tinyman  → TinymanSwapService (mainnet, real Tinyman v2 AMM)
+export const SWAP_BACKEND      = optionalEnv("SWAP_BACKEND", "mock");
+export const TINYMAN_APP_ID    = parseInt(optionalEnv("TINYMAN_APP_ID", "0"));
+export const USDC_ASA_ID       = parseInt(optionalEnv("USDC_ASA_ID", "31566704"));
+export const SWAP_SLIPPAGE_BPS = parseInt(optionalEnv("SWAP_SLIPPAGE_BPS", "50")); // 0.5%

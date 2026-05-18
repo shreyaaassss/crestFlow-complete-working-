@@ -163,15 +163,23 @@ class CadenciaEscrow(ARC4Contract):
         order = self.orders[order_id].copy()
         assert Txn.sender == self.admin or Txn.sender == order.buyer.native, "UNAUTHORIZED"
 
-        if order.invest_eligible == arc4.Bool(False):
-            assert order.status == arc4.UInt8(PENDING), "INVALID_STATUS"
+        # ── Pivot on order.status, NOT invest_eligible ──────────────────────
+        # Previous code pivoted on invest_eligible which caused any PENDING but
+        # invest-eligible order (amount >= 5 ALGO) to assert REDEEMED status,
+        # making it impossible to cancel before the orchestrator invested it.
+        # (CrestFlow Audit Issue 4 — fixed 2026-05-18)
+
+        if order.status == arc4.UInt8(PENDING):
+            # Not yet invested — full refund immediately, regardless of amount.
             itxn.Payment(
                 receiver=order.buyer.native,
                 amount=order.amount.native,
                 fee=UInt64(0),
             ).submit()
-        else:
-            assert order.status == arc4.UInt8(REDEEMED), "STILL_INVESTED"
+
+        elif order.status == arc4.UInt8(REDEEMED):
+            # Orchestrator has already redeemed — return principal to buyer
+            # and send any yield to the platform wallet.
             itxn.Payment(
                 receiver=order.buyer.native,
                 amount=order.amount.native,
@@ -183,6 +191,12 @@ class CadenciaEscrow(ARC4Contract):
                     amount=order.yield_earned.native,
                     fee=UInt64(0),
                 ).submit()
+
+        else:
+            # INVESTED, COMPLETED, or CANCELLED — cannot cancel in this state.
+            # If INVESTED, the backend must first orchestrate an early redeem
+            # before calling cancel_order.
+            assert False, "CANNOT_CANCEL_IN_CURRENT_STATUS"
 
         self.orders[order_id] = OrderRecord(
             buyer=order.buyer, seller=order.seller, amount=order.amount,

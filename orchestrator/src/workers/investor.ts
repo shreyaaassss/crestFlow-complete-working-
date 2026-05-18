@@ -21,7 +21,9 @@ export async function investPendingOrders(): Promise<void> {
       const lockDurationRounds = order.lockUntil - order.createdAt;
       const tbillType = tbill.selectTBillType(lockDurationRounds);
       await escrow.transferToTreasury(orderId);
-      await tbill.invest(orderId, order.amount, tbillType);
+      // Pass order.createdAt so the contract anchors maturity to order creation
+      // time, not to the (later) investment time (Issue 2 fix).
+      await tbill.invest(orderId, order.amount, tbillType, order.createdAt);
 
       // Yield backend hook — routes to DeFi on mainnet Phase 2, no-op for reserve
       const yb = getYieldBackend();

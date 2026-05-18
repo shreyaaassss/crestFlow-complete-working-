@@ -22,9 +22,9 @@ from algosdk.atomic_transaction_composer import (
     AtomicTransactionComposer, AccountTransactionSigner,
 )
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 ENV_PATH     = PROJECT_ROOT / ".env"
-ARTIFACT_DIR = PROJECT_ROOT / "smart_contracts" / "cadencia_escrow"
+ARTIFACT_DIR = PROJECT_ROOT / "smart_contracts" / "cadencia_escrow" / "artifacts" / "cadencia_escrow"
 
 load_dotenv(ENV_PATH)
 

@@ -1,0 +1,12 @@
+{
+  "name": "crestflow-backend",
+  "description": "CrestFlow Treasury — Backend API",
+  "deployment": "aws-ecs-fargate",
+  "region": "ap-south-1",
+  "cluster": "crestflow-cluster",
+  "service": "crestflow-backend",
+  "image": "385467777110.dkr.ecr.ap-south-1.amazonaws.com/crestflow-backend",
+  "port": 3002,
+  "healthcheck": "/health",
+  "notes": "Docker image is built and pushed to ECR by GitHub Actions (deploy.yml). Deployed as ECS Fargate task behind an ALB, served via CloudFront at https://dwn69a9pf40yt.cloudfront.net"
+}

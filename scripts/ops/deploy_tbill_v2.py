@@ -25,7 +25,7 @@ from algosdk.atomic_transaction_composer import (
 
 # ── Config ────────────────────────────────────────────────────
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 ENV_PATH     = PROJECT_ROOT / ".env"
 ARTIFACT_DIR = PROJECT_ROOT / "smart_contracts" / "cadencia_tbill" / "artifacts" / "cadencia_tbill"
 

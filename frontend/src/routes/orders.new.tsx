@@ -1,9 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { api, type EstimateResponse, type PrepareResponse, type SubmitResponse, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { signOrderTxnGroup } from "@/lib/pera";
 import { fmtAlgo, fmtPct } from "@/lib/format";
+import { SwapWidget, type SwapMode } from "@/components/SwapWidget";
 
 export const Route = createFileRoute("/orders/new")({
   head: () => ({ meta: [{ title: "New order — CrestFlow" }] }),
@@ -20,6 +21,7 @@ function NewOrderPage() {
   const [lockDays, setLockDays] = useState<number>(7);
   const [seller, setSeller] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [swapMode, setSwapMode] = useState<SwapMode>("none");
   const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
   const [estErr, setEstErr] = useState<string | null>(null);
 
@@ -179,6 +181,18 @@ function NewOrderPage() {
                       {description.length}/200 — stored on-chain metadata (optional)
                     </p>
                   </Field>
+
+                  {/* Swap preference — shown when amount ≥ 5 ALGO (invest eligible) */}
+                  {amount >= 5 && (
+                    <Field label="Payout currency (at maturity)">
+                      <SwapWidget
+                        algoAmount={amount}
+                        estimatedYieldAlgo={estimate?.estimated_yield_algo ?? 0}
+                        defaultMode={swapMode}
+                        onChange={setSwapMode}
+                      />
+                    </Field>
+                  )}
 
                   <button
                     onClick={handlePrepare}

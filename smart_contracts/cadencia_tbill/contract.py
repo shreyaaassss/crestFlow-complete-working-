@@ -207,10 +207,16 @@ class CadenciaTBill(ARC4Contract):
         pay_txn: gtxn.PaymentTransaction,
         order_id: arc4.UInt64,
         tbill_type: arc4.UInt8,
+        order_created_at: arc4.UInt64,
     ) -> None:
         """
         Accept ALGO payment, record T-bill position with maturity timestamp.
         tbill_type must be one of: 1, 3, 7, 14, 30, 60, 90.
+
+        order_created_at: the Unix timestamp when the escrow order was created.
+        Maturity is calculated from this value, not from Global.latest_timestamp,
+        so orchestrator pickup delay does not eat into the lock period.
+        (Issue 2 fix — 2026-05-18)
         """
         assert Txn.sender == self.orchestrator, "UNAUTHORIZED"
         assert self.paused == UInt64(0), "TBILL_PAUSED"
@@ -229,13 +235,16 @@ class CadenciaTBill(ARC4Contract):
             or days == UInt64(TBILL_90D)
         ), "INVALID_TYPE"
 
-        maturity = self._calc_maturity(days)
+        # Use the escrow order's creation timestamp so the maturity period
+        # starts from when the user placed the order, not when the orchestrator
+        # happened to pick it up.
+        maturity = self._calc_maturity_from(order_created_at.native, days)
 
         self.positions[order_id] = TBillPosition(
             principal=arc4.UInt64(pay_txn.amount),
             tbill_type=tbill_type,
             maturity_timestamp=arc4.UInt64(maturity),
-            invested_at=arc4.UInt64(Global.latest_timestamp),
+            invested_at=order_created_at,
             status=arc4.UInt8(POS_ACTIVE),
         )
 
@@ -374,14 +383,23 @@ class CadenciaTBill(ARC4Contract):
 
     @subroutine
     def _calc_maturity(self, days: UInt64) -> UInt64:
-        """Calculate maturity timestamp based on demo/production mode."""
+        """Calculate maturity timestamp from current block time (kept for internal use)."""
+        return self._calc_maturity_from(Global.latest_timestamp, days)
+
+    @subroutine
+    def _calc_maturity_from(self, base_timestamp: UInt64, days: UInt64) -> UInt64:
+        """
+        Calculate maturity timestamp from an arbitrary base timestamp.
+        Used by invest() to anchor maturity to the order's creation time so
+        orchestrator pickup delay does not shorten the lock period.
+        """
         if self.demo_mode == UInt64(1):
             # Demo: each day is demo_multiplier seconds
             # e.g. 30D * 60s = 1800s = 30 minutes
-            return Global.latest_timestamp + (days * self.demo_multiplier)
+            return base_timestamp + (days * self.demo_multiplier)
         else:
             # Production: days * 86400 seconds
-            return Global.latest_timestamp + (days * UInt64(86400))
+            return base_timestamp + (days * UInt64(86400))
 
     @subroutine
     def _calc_yield(self, principal: UInt64, days: UInt64) -> UInt64:

@@ -26,7 +26,8 @@ except ImportError:
 from supabase import create_client
 
 # ── Config ────────────────────────────────────────────────────────────────────
-BASE_URL    = "http://localhost:3001"
+BACKEND_PORT = os.getenv("BACKEND_PORT", "3002")
+BASE_URL    = f"http://localhost:{BACKEND_PORT}"
 ALGOD_URL   = os.getenv("ALGOD_SERVER", "https://testnet-api.algonode.cloud")
 ALGOD_TOKEN = os.getenv("ALGOD_TOKEN", "")
 ALGOD_PORT  = os.getenv("ALGOD_PORT", "443")

@@ -53,3 +53,9 @@ coverage/
 # ── Local screenshots ────────────────────────────────────────────────────────
 Screenshot*.png
 Screenshot*.jpg
+
+# Compile venv
+.venv-compile/
+
+# Puyapy build maps
+*.puya.map
