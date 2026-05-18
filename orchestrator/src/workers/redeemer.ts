@@ -12,6 +12,7 @@ import * as tbill from "../services/tbill";
 import * as logger from "../utils/logger";
 import { withRetry } from "../utils/retry";
 import { getYieldBackend } from "../services/yield-backend";
+import * as algorand from "../services/algorand";
 
 export async function redeemExpiredOrders(): Promise<void> {
   const investedOrders = await escrow.findOrdersByStatus(OrderStatus.INVESTED);
@@ -23,7 +24,8 @@ export async function redeemExpiredOrders(): Promise<void> {
     const matured = await tbill.isMatured(orderId).catch(() => false);
     if (!matured) {
       const maturityTs = await tbill.getMaturity(orderId).catch(() => 0);
-      const remaining  = maturityTs - Math.floor(Date.now() / 1000);
+      const currentTs  = await algorand.getCurrentBlockTimestamp();
+      const remaining  = maturityTs - currentTs;
       if (remaining > 0)
         logger.info(`Order ${orderId}: matures in ${remaining}s (${Math.ceil(remaining / 60)}min)`);
       continue;

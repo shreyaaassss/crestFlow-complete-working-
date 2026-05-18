@@ -19,7 +19,7 @@ export async function investPendingOrders(): Promise<void> {
   logger.info(`Found ${eligible.length} eligible PENDING order(s) to invest`);
   
   const currentRound = await algorand.getCurrentRound();
-  const currentTs = Math.floor(Date.now() / 1000);
+  const currentTs = await algorand.getCurrentBlockTimestamp();
 
   for (const { orderId, order } of eligible) {
     await withRetry(async () => {
@@ -28,7 +28,7 @@ export async function investPendingOrders(): Promise<void> {
       await escrow.transferToTreasury(orderId);
       
       // Convert the order creation round to a Unix timestamp (~3.3s/block)
-      // because the T-Bill contract expects a timestamp, not a round number.
+      // using the exact Algorand network timestamp to avoid AWS/node clock drift.
       const deltaSec = (currentRound - order.createdAt) * 3.3;
       const orderCreatedAtTimestamp = Math.floor(currentTs - deltaSec);
 

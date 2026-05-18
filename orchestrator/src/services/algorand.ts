@@ -10,6 +10,13 @@ export async function getCurrentRound(): Promise<number> {
   return Number(status["lastRound"]);
 }
 
+export async function getCurrentBlockTimestamp(): Promise<number> {
+  const status = await algodClient.status().do();
+  const round = Number(status["lastRound"]);
+  const blockInfo = await algodClient.block(round).do();
+  return Number(blockInfo.block.ts);
+}
+
 export async function sendPayment(receiver: string, amountMicroAlgo: number): Promise<string> {
   const sp = await algodClient.getTransactionParams().do();
   const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
