@@ -8,19 +8,24 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
+      {/* Sleek letter 'C' (Crest) */}
       <path
-        d="M19 8L12 4L5 8v8l7 4 7-4"
+        d="M17 6a9 9 0 1 0 0 12"
         stroke="var(--ink)"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Rising trendline chart peak (Flow) */}
       <path
-        d="M3 12c3-3 6-3 9 0s6 3 9 0"
+        d="M7 15l3-3 2.5 2.5L18 8"
         stroke="var(--link)"
         strokeWidth="2.5"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      {/* Peak dot */}
+      <circle cx="18" cy="8" r="2" fill="var(--link)" />
     </svg>
   );
 }
